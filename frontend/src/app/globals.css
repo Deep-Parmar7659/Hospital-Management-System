@@ -1,0 +1,174 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* 🔧 TAILWIND V4: Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 1. Define Futuristic Theme Colors & Animations */
+@theme {
+  --color-background: #0a0a0f;
+  --color-surface: #13131f;
+  --color-primary: #00f0ff;
+  --color-secondary: #7000ff;
+  --color-accent: #ff003c;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 2. Base Styles (Dark Mode Default) */
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: #f3f4f6;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* 3. Futuristic Glassmorphism Components (Dark Mode Default) */
+@layer components {
+  .glass-panel {
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-input {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: white;
+    transition: all 0.3s ease;
+  }
+
+  .glass-input::placeholder {
+    color: #6b7280;
+  }
+
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+
+  .neon-button {
+    background-color: rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    color: var(--color-primary);
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .neon-button:hover {
+    background-color: var(--color-primary);
+    color: black;
+    box-shadow:
+      0 0 10px rgba(0, 240, 255, 0.5),
+      0 0 20px rgba(0, 240, 255, 0.3);
+  }
+}
+
+/* =========================================
+   LIGHT MODE OVERRIDES
+   ========================================= */
+
+:root:not(.dark) {
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+}
+
+/* Base text colors in light mode */
+:root:not(.dark) body {
+  background-color: var(--color-background);
+  color: #0f172a;
+}
+
+/* Force all text to be visible in light mode */
+:root:not(.dark) .text-white {
+  color: #0f172a !important;
+}
+
+:root:not(.dark) .text-gray-400 {
+  color: #475569 !important;
+}
+
+:root:not(.dark) .text-gray-500 {
+  color: #64748b !important;
+}
+
+/* Make headings and bold text dark */
+:root:not(.dark) h1,
+:root:not(.dark) h2,
+:root:not(.dark) h3,
+:root:not(.dark) .font-bold,
+:root:not(.dark) .text-2xl,
+:root:not(.dark) .text-3xl {
+  color: #0f172a !important;
+}
+
+/* Glass panel adjustments */
+:root:not(.dark) .glass-panel {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Input fields */
+:root:not(.dark) .glass-input {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #0f172a;
+}
+
+:root:not(.dark) .glass-input::placeholder {
+  color: #64748b;
+}
+
+:root:not(.dark) .glass-input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 1px #0ea5e9;
+}
+
+/* Buttons */
+:root:not(.dark) .neon-button {
+  background-color: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.5);
+  color: #0284c7;
+}
+
+:root:not(.dark) .neon-button:hover {
+  background-color: #0ea5e9;
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.39);
+}
+
+/* Sidebar specific fixes */
+:root:not(.dark) aside .text-white {
+  color: #1e293b !important;
+}
+
+:root:not(.dark) aside .text-gray-400 {
+  color: #64748b !important;
+}
+
+:root:not(.dark) aside {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Stat cards - ensure numbers are visible */
+:root:not(.dark) .text-2xl.font-bold,
+:root:not(.dark) .text-3xl.font-bold {
+  color: #0f172a !important;
+  font-weight: 700;
+}
+
+/* Chart container */
+:root:not(.dark) .glass-panel:has(.recharts-wrapper) {
+  background-color: rgba(255, 255, 255, 0.95);
+}
