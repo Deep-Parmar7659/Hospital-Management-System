@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth # <-- ADD THIS LINE
+from .routers import auth
 from .routers import staff
 from .routers import attendance
 from .routers import leave
@@ -9,6 +9,7 @@ from .routers import payroll
 from .routers import notification
 from .routers import reports
 from .routers import shift
+
 app = FastAPI(
     title="Futuristic HMS API", 
     version="1.0.0",
@@ -17,13 +18,18 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://hospital-management-system-iota-beige.vercel.app",
+        "https://hospital-management-system-g87kfjms2-deep-parmar7659s-projects.vercel.app",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include the auth router
+# Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(staff.router, prefix="/api/v1/staff", tags=["Staff Management"])
 app.include_router(attendance.router, prefix="/api/v1/attendance", tags=["Attendance"])
