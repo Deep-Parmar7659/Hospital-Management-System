@@ -16,6 +16,34 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+const getUserRoleFromToken = (): string => {
+  if (typeof window === "undefined") return "staff";
+
+  const token = localStorage.getItem("nexus_token");
+  if (!token) return "staff";
+
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return "staff";
+
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join(""),
+    );
+
+    const payload = JSON.parse(jsonPayload);
+    return payload.role || "staff";
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return "staff";
+  }
+};
+
 // Define the navigation structure and required roles
 const navigation = [
   {
@@ -68,23 +96,9 @@ const navigation = [
   },
 ];
 
-const getStoredUserRole = (): string => {
-  if (typeof window === "undefined") return "staff";
-
-  try {
-    const storedUser = localStorage.getItem("nexus_user");
-    if (!storedUser) return "staff";
-
-    const parsedUser = JSON.parse(storedUser);
-    return parsedUser.role || "staff";
-  } catch {
-    return "staff";
-  }
-};
-
 export default function Sidebar() {
   const pathname = usePathname();
-  const [userRole] = useState<string>(getStoredUserRole);
+  const [userRole] = useState<string>(() => getUserRoleFromToken());
 
   const handleLogout = () => {
     localStorage.removeItem("nexus_token");
