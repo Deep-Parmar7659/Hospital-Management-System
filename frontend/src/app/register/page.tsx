@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { motion } from "framer-motion";
@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
@@ -36,19 +36,41 @@ export default function RegisterPage() {
       console.log("Registration successful:", response.data);
       router.push("/login?registered=true");
     } catch (err: unknown) {
-      // This will show the EXACT error from the backend (e.g., "Password too short")
-      const errorMsg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ||
-        (err as Error).message ||
-        "Registration failed";
-      console.error(
-        "Register Error:",
-        (err as { response?: { data?: { detail?: string } } })?.response?.data,
-      );
-      setError(
-        typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg),
-      );
+      const apiError = err as {
+        response?: {
+          data?: { detail?: string } | string;
+        };
+        request?: unknown;
+        message?: string;
+      };
+
+      console.log("FULL ERROR OBJECT:", err);
+      console.log("ERROR RESPONSE:", apiError.response);
+      console.log("ERROR MESSAGE:", apiError.message);
+
+      let errorMsg = "Registration failed";
+      if (apiError.response) {
+        // Backend replied, but with an error (e.g., "Email already exists")
+        const responseData = apiError.response.data;
+
+        if (typeof responseData === "string") {
+          errorMsg = responseData;
+        } else if (responseData && typeof responseData === "object") {
+          errorMsg =
+            "detail" in responseData && typeof responseData.detail === "string"
+              ? responseData.detail
+              : JSON.stringify(responseData);
+        }
+      } else if (apiError.request) {
+        // Request was sent, but NO response came back (CORS or Backend is asleep)
+        errorMsg =
+          "Network Error: Cannot reach backend. Is the Render backend awake?";
+      } else {
+        errorMsg = apiError.message || "Unknown error";
+      }
+
+      console.error("Final Error Message:", errorMsg);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
