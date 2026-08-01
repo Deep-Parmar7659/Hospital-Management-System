@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Activity, Lock, Mail, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/api";
 
@@ -36,6 +36,17 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  // Add this inside the component function
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("nexus_token");
+      if (token) {
+        // If already logged in, go to dashboard
+        window.location.href = "/dashboard";
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
