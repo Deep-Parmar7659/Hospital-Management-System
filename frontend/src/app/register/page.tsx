@@ -24,13 +24,31 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      await api.post("/auth/register", formData);
+      // Send only the fields the backend usually expects
+      const payload = {
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+        // Remove 'role' for now unless your backend specifically asks for it
+      };
+
+      const response = await api.post("/auth/register", payload);
+      console.log("Registration successful:", response.data);
       router.push("/login?registered=true");
     } catch (err: unknown) {
-      const errorMessage =
+      // This will show the EXACT error from the backend (e.g., "Password too short")
+      const errorMsg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail || "Registration failed";
-      setError(errorMessage);
+          ?.detail ||
+        (err as Error).message ||
+        "Registration failed";
+      console.error(
+        "Register Error:",
+        (err as { response?: { data?: { detail?: string } } })?.response?.data,
+      );
+      setError(
+        typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg),
+      );
     } finally {
       setIsLoading(false);
     }
