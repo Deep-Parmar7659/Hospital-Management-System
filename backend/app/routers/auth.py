@@ -26,7 +26,8 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
         full_name=user.full_name,
         email=user.email,
         hashed_password=hashed_password,
-        role=user.role
+        role=user.role if hasattr(user, 'role') else "staff",
+        is_active=True  # <-- ADDED THIS LINE
     )
     
     db.add(new_user)
@@ -49,7 +50,7 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Generate JWT Token - MAKE SURE ROLE IS INCLUDED HERE
+    # Generate JWT Token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role},
