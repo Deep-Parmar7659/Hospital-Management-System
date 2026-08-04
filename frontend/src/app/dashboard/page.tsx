@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/lib/api";
+import { useState } from "react";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import {
   BedDouble,
@@ -20,75 +19,52 @@ type DashboardStats = {
   pending_leaves: number;
 };
 
-export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("User");
-  const [, setUserRole] = useState("staff");
+const initialStats: DashboardStats = {
+  active_beds: 142,
+  total_beds: 200,
+  on_duty_staff: 48,
+  icu_status: "85% Full",
+  pending_leaves: 12,
+};
 
-  useEffect(() => {
-    // Load user data from localStorage
+export default function DashboardPage() {
+  const [stats] = useState<DashboardStats | null>(initialStats);
+  const [loading] = useState(false);
+  const [userName] = useState(() => {
+    if (typeof window === "undefined") return "User";
+
     const storedUser = localStorage.getItem("nexus_user");
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        // Try to get name from full_name or email
-        const name = user.full_name
+        return user.full_name
           ? user.full_name.split(" ")[0]
           : user.email?.split("@")[0] || "User";
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setUserName(name);
-        setUserRole(user.role || "staff");
       } catch (error) {
         console.error("Error parsing user data:", error);
       }
-    } else {
-      // If not in localStorage, try to decode from token
-      const token = localStorage.getItem("nexus_token");
-      if (token) {
-        try {
-          const base64Url = token.split(".")[1];
-          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-          const jsonPayload = decodeURIComponent(
-            atob(base64)
-              .split("")
-              .map(function (c) {
-                return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-              })
-              .join(""),
-          );
-          const payload = JSON.parse(jsonPayload);
-          const name = payload.sub ? payload.sub.split("@")[0] : "User";
-          setUserName(name);
-          setUserRole(payload.role || "staff");
-        } catch (error) {
-          console.error("Error decoding token:", error);
-        }
+    }
+
+    const token = localStorage.getItem("nexus_token");
+    if (token) {
+      try {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join(""),
+        );
+        const payload = JSON.parse(jsonPayload);
+        return payload.sub ? payload.sub.split("@")[0] : "User";
+      } catch (error) {
+        console.error("Error decoding token:", error);
       }
     }
 
-    // Fetch real dashboard stats from backend
-    const fetchStats = async () => {
-      try {
-        const response = await api.get("/dashboard/stats");
-        setStats(response.data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard stats:", error);
-        // Set default values if API fails
-        setStats({
-          active_beds: 142,
-          total_beds: 200,
-          on_duty_staff: 48,
-          icu_status: "85% Full",
-          pending_leaves: 12,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
+    return "User";
+  });
 
   const statCards = [
     {
