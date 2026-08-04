@@ -7,13 +7,15 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex h-screen bg-background text-white overflow-hidden">
-      {/* Sidebar - Fixed width on desktop */}
+      {/* Sidebar */}
       <aside className="hidden md:flex w-64 flex-col">
         <Sidebar />
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+      {/* Mobile Menu Button (we'll add this later) */}
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 }
