@@ -14,114 +14,68 @@ import {
   LogOut,
   Activity,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// Helper function to get user profile (Full Name & Role)
-const getUserProfile = () => {
-  if (typeof window === "undefined") return { name: "User", role: "staff" };
+function getStoredUserProfile() {
+  if (typeof window === "undefined") {
+    return { userName: "User", userRole: "staff" };
+  }
 
-  // 1. Try to get from nexus_user (saved during login)
-  const storedUser = localStorage.getItem("nexus_user");
-  if (storedUser) {
-    try {
+  try {
+    const storedUser = localStorage.getItem("nexus_user");
+    if (storedUser) {
       const user = JSON.parse(storedUser);
       return {
-        name: user.full_name || user.email?.split("@")[0] || "User",
-        role: user.role || "staff",
+        userName: user.full_name || user.email?.split("@")[0] || "User",
+        userRole: user.role || "staff",
       };
-    } catch (e) {
-      console.error("Error parsing user:", e);
     }
-  }
 
-  // 2. Fallback to decoding the JWT token directly
-  const token = localStorage.getItem("nexus_token");
-  if (token) {
-    try {
+    const token = localStorage.getItem("nexus_token");
+    if (token) {
       const base64Url = token.split(".")[1];
-      if (!base64Url) return { name: "User", role: "staff" };
-
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map(function (c) {
-            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-          })
-          .join(""),
-      );
-      const payload = JSON.parse(jsonPayload);
-      return {
-        name: payload.full_name || payload.sub?.split("@")[0] || "User",
-        role: payload.role || "staff",
-      };
-    } catch (error) {
-      console.error("Error decoding token:", error);
+      if (base64Url) {
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join(""),
+        );
+        const payload = JSON.parse(jsonPayload);
+        return {
+          userName: payload.full_name || payload.sub?.split("@")[0] || "User",
+          userRole: payload.role || "staff",
+        };
+      }
     }
+  } catch (error) {
+    console.error("Error reading user profile:", error);
   }
 
-  return { name: "User", role: "staff" };
-};
-
-// Define the navigation structure and required roles
-const navigation = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    roles: ["admin", "commander", "hr", "staff"],
-  },
-  {
-    name: "Staff Management",
-    href: "/staff",
-    icon: Users,
-    roles: ["admin", "commander", "hr"],
-  },
-  {
-    name: "Shift Scheduling",
-    href: "/shifts",
-    icon: Calendar,
-    roles: ["admin", "commander", "hr", "staff"],
-  },
-  {
-    name: "Attendance",
-    href: "/attendance",
-    icon: Clock,
-    roles: ["admin", "commander", "hr", "staff"],
-  },
-  {
-    name: "Leave Requests",
-    href: "/leaves",
-    icon: FileText,
-    roles: ["admin", "commander", "hr", "staff"],
-  },
-  {
-    name: "Payroll",
-    href: "/payroll",
-    icon: DollarSign,
-    roles: ["admin", "commander", "hr", "staff"],
-  },
-  {
-    name: "Reports",
-    href: "/reports",
-    icon: BarChart3,
-    roles: ["admin", "commander", "hr"],
-  },
-  {
-    name: "System Settings",
-    href: "/settings",
-    icon: Settings,
-    roles: ["admin", "commander"],
-  },
-];
+  return { userName: "User", userRole: "staff" };
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
 
-  // Get user profile safely on mount
-  const [userProfile] = useState(() => getUserProfile());
-  const userRole = userProfile.role;
-  const userName = userProfile.name;
+  const initialUserProfile = getStoredUserProfile();
+
+  // 1. Start with default server-safe values, then hydrate from localStorage
+  const [userName] = useState(initialUserProfile.userName);
+  const [userRole] = useState(initialUserProfile.userRole);
+  const [mounted, setMounted] = useState(false);
+
+  // 2. Only track mount state for client-only rendering
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setMounted(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("nexus_token");
@@ -129,12 +83,80 @@ export default function Sidebar() {
     window.location.href = "/login";
   };
 
-  // Filter menu items based on the user's role
+  const navigation = [
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+      roles: ["admin", "commander", "hr", "staff"],
+    },
+    {
+      name: "Staff Management",
+      href: "/staff",
+      icon: Users,
+      roles: ["admin", "commander", "hr"],
+    },
+    {
+      name: "Shift Scheduling",
+      href: "/shifts",
+      icon: Calendar,
+      roles: ["admin", "commander", "hr", "staff"],
+    },
+    {
+      name: "Attendance",
+      href: "/attendance",
+      icon: Clock,
+      roles: ["admin", "commander", "hr", "staff"],
+    },
+    {
+      name: "Leave Requests",
+      href: "/leaves",
+      icon: FileText,
+      roles: ["admin", "commander", "hr", "staff"],
+    },
+    {
+      name: "Payroll",
+      href: "/payroll",
+      icon: DollarSign,
+      roles: ["admin", "commander", "hr", "staff"],
+    },
+    {
+      name: "Reports",
+      href: "/reports",
+      icon: BarChart3,
+      roles: ["admin", "commander", "hr"],
+    },
+    {
+      name: "System Settings",
+      href: "/settings",
+      icon: Settings,
+      roles: ["admin", "commander"],
+    },
+  ];
+
   const allowedNav = navigation.filter((item) => item.roles.includes(userRole));
+
+  // 3. Prevent hydration mismatch by rendering a simple skeleton until mounted
+  if (!mounted) {
+    return (
+      <div className="flex h-full flex-col justify-between border-r border-white/10 bg-black/40 backdrop-blur-xl p-4">
+        <div className="flex items-center gap-2 px-4 py-6">
+          <Activity className="h-8 w-8 text-cyan-400" />
+          <h1 className="text-2xl font-bold text-white">
+            NEXUS <span className="text-cyan-400">HMS</span>
+          </h1>
+        </div>
+        <div className="mt-6 space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col justify-between border-r border-white/10 bg-black/40 backdrop-blur-xl p-4">
-      {/* Logo Section */}
       <div>
         <div className="flex items-center gap-2 px-4 py-6">
           <Activity className="h-8 w-8 text-cyan-400" />
@@ -143,7 +165,6 @@ export default function Sidebar() {
           </h1>
         </div>
 
-        {/* Navigation Links */}
         <nav className="mt-6 space-y-2">
           {allowedNav.map((item) => {
             const isActive = pathname === item.href;
@@ -165,7 +186,6 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      {/* User Profile & Logout Section */}
       <div className="border-t border-white/10 pt-4">
         <div className="flex items-center gap-3 px-4 py-3 mb-2">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 font-bold uppercase">
