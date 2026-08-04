@@ -1,68 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BedDouble, Users, HeartPulse, FileClock, LogOut } from "lucide-react";
 
-const getInitialUserProfile = () => {
-  if (typeof window === "undefined") {
-    return {
-      name: "User",
-      email: "",
-      role: "staff",
-    };
-  }
-
-  const token = localStorage.getItem("nexus_token");
-  const storedUser = localStorage.getItem("nexus_user");
-
-  if (storedUser) {
-    try {
-      const user = JSON.parse(storedUser);
-      return {
-        name: user.full_name || user.email?.split("@")[0] || "User", // FULL NAME FIRST
-        email: user.email || "",
-        role: user.role || "staff",
-      };
-    } catch (e) {
-      console.error("Error:", e);
-    }
-  }
-
-  if (token) {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join(""),
-      );
-      const payload = JSON.parse(jsonPayload);
-      const email = payload.sub || "";
-      return {
-        name: email.split("@")[0] || "User",
-        email,
-        role: payload.role || "staff",
-      };
-    } catch (e) {
-      console.error("Error decoding token:", e);
-    }
-  }
-
-  return {
+export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false);
+  const [userProfile, setUserProfile] = useState({
     name: "User",
     email: "",
     role: "staff",
-  };
-};
-
-export default function DashboardPage() {
-  const [userProfile] = useState(() => getInitialUserProfile());
-  const userName = userProfile.name;
-  const userEmail = userProfile.email;
-  const userRole = userProfile.role;
+  });
   const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setMounted(true);
+
+      const token = localStorage.getItem("nexus_token");
+      const storedUser = localStorage.getItem("nexus_user");
+
+      let name = "User";
+      let email = "";
+      let role = "staff";
+
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          name = user.full_name || user.email?.split("@")[0] || "User";
+          email = user.email || "";
+          role = user.role || "staff";
+        } catch (e) {
+          console.error("Error parsing user:", e);
+        }
+      } else if (token) {
+        try {
+          const base64Url = token.split(".")[1];
+          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+          const jsonPayload = decodeURIComponent(
+            atob(base64)
+              .split("")
+              .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+              .join(""),
+          );
+          const payload = JSON.parse(jsonPayload);
+          email = payload.sub || "";
+          name = payload.full_name || email.split("@")[0] || "User";
+          role = payload.role || "staff";
+        } catch (e) {
+          console.error("Error decoding token:", e);
+        }
+      }
+
+      setUserProfile({ name, email, role });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("nexus_token");
@@ -70,7 +63,19 @@ export default function DashboardPage() {
     window.location.href = "/login";
   };
 
+  const userName = userProfile.name;
+  const userEmail = userProfile.email;
+  const userRole = userProfile.role;
   const initials = userName.charAt(0).toUpperCase();
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-white p-4 md:p-8">
@@ -78,8 +83,6 @@ export default function DashboardPage() {
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            {" "}
-            {/* Updated */}
             Welcome back, <span className="text-cyan-400">{userName}</span>
           </h1>
           <p className="text-gray-400">
@@ -87,7 +90,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Clickable Profile - Built In */}
+        {/* Clickable Profile */}
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
@@ -101,7 +104,6 @@ export default function DashboardPage() {
             </span>
           </button>
 
-          {/* Dropdown */}
           {showDropdown && (
             <>
               <div
