@@ -26,10 +26,28 @@ export const authService = {
       const response = await api.post("/auth/login", { email, password });
       if (response.data.access_token) {
         localStorage.setItem("nexus_token", response.data.access_token);
-        localStorage.setItem(
-          "nexus_user",
-          JSON.stringify(response.data.user || response.data),
+
+        // Decode JWT to get user info
+        const token = response.data.access_token;
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join(""),
         );
+        const payload = JSON.parse(jsonPayload);
+
+        // Save user data to localStorage
+        const userData = {
+          email: payload.sub || email,
+          role: payload.role || "staff",
+          full_name: payload.sub?.split("@")[0] || email.split("@")[0],
+        };
+        localStorage.setItem("nexus_user", JSON.stringify(userData));
+
+        console.log("User data saved:", userData);
       }
       return response.data;
     } catch (error) {
