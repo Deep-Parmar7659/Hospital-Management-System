@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { motion } from "framer-motion";
@@ -18,18 +18,18 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-      // Send only the fields the backend usually expects
+      // Send the role to the backend!
       const payload = {
+        full_name: formData.full_name,
         email: formData.email,
         password: formData.password,
-        full_name: formData.full_name,
-        // Remove 'role' for now unless your backend specifically asks for it
+        role: formData.role,
       };
 
       const response = await api.post("/auth/register", payload);
