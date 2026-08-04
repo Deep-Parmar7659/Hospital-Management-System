@@ -50,10 +50,14 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Generate JWT Token
+    # Generate JWT Token with FULL NAME included
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "role": user.role},
+        data={
+            "sub": user.email, 
+            "role": user.role,
+            "full_name": user.full_name  # ADD THIS
+        },
         expires_delta=access_token_expires
     )
     
