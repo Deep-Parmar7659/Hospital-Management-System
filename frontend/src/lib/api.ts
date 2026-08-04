@@ -27,7 +27,7 @@ export const authService = {
       if (response.data.access_token) {
         localStorage.setItem("nexus_token", response.data.access_token);
 
-        // Decode JWT to get user info
+        // Decode JWT to get ALL user info
         const token = response.data.access_token;
         const base64Url = token.split(".")[1];
         const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -39,15 +39,18 @@ export const authService = {
         );
         const payload = JSON.parse(jsonPayload);
 
-        // Save user data to localStorage
+        // Save user data with FULL NAME
         const userData = {
           email: payload.sub || email,
           role: payload.role || "staff",
-          full_name: payload.sub?.split("@")[0] || email.split("@")[0],
+          full_name:
+            payload.full_name ||
+            payload.sub?.split("@")[0] ||
+            email.split("@")[0],
         };
         localStorage.setItem("nexus_user", JSON.stringify(userData));
 
-        console.log("User data saved:", userData);
+        console.log("✅ User logged in:", userData);
       }
       return response.data;
     } catch (error) {
