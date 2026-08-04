@@ -19,7 +19,7 @@ const getInitialUserProfile = () => {
     try {
       const user = JSON.parse(storedUser);
       return {
-        name: user.full_name || user.email?.split("@")[0] || "User",
+        name: user.full_name || user.email?.split("@")[0] || "User", // FULL NAME FIRST
         email: user.email || "",
         role: user.role || "staff",
       };
@@ -77,7 +77,9 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2"> {/* Updated */}
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {" "}
+            {/* Updated */}
             Welcome back, <span className="text-cyan-400">{userName}</span>
           </h1>
           <p className="text-gray-400">
