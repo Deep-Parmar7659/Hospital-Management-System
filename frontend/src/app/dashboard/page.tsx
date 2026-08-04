@@ -11,106 +11,89 @@ import {
   TrendingDown,
 } from "lucide-react";
 
-type DashboardStats = {
-  active_beds: number;
-  total_beds: number;
-  on_duty_staff: number;
-  icu_status: string;
-  pending_leaves: number;
-};
+function getUserSessionData() {
+  if (typeof window === "undefined") {
+    return { userName: "User", userRole: "staff" };
+  }
 
-const initialStats: DashboardStats = {
-  active_beds: 142,
-  total_beds: 200,
-  on_duty_staff: 48,
-  icu_status: "85% Full",
-  pending_leaves: 12,
-};
+  const storedUser = localStorage.getItem("nexus_user");
+  if (storedUser) {
+    try {
+      const user = JSON.parse(storedUser);
+      return {
+        userName: user.full_name
+          ? user.full_name.split(" ")[0]
+          : user.email?.split("@")[0] || "User",
+        userRole: user.role || "staff",
+      };
+    } catch (error) {
+      console.error("Error parsing user:", error);
+    }
+  }
+
+  const token = localStorage.getItem("nexus_token");
+  if (token) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join(""),
+      );
+      const payload = JSON.parse(jsonPayload);
+      return {
+        userName: payload.sub ? payload.sub.split("@")[0] : "User",
+        userRole: payload.role || "staff",
+      };
+    } catch (error) {
+      console.error("Error decoding token:", error);
+    }
+  }
+
+  return { userName: "User", userRole: "staff" };
+}
 
 export default function DashboardPage() {
-  const [stats] = useState<DashboardStats | null>(initialStats);
-  const [loading] = useState(false);
-  const [userName] = useState(() => {
-    if (typeof window === "undefined") return "User";
-
-    const storedUser = localStorage.getItem("nexus_user");
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        return user.full_name
-          ? user.full_name.split(" ")[0]
-          : user.email?.split("@")[0] || "User";
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-      }
-    }
-
-    const token = localStorage.getItem("nexus_token");
-    if (token) {
-      try {
-        const base64Url = token.split(".")[1];
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-        const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split("")
-            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-            .join(""),
-        );
-        const payload = JSON.parse(jsonPayload);
-        return payload.sub ? payload.sub.split("@")[0] : "User";
-      } catch (error) {
-        console.error("Error decoding token:", error);
-      }
-    }
-
-    return "User";
-  });
+  const initialUserData = getUserSessionData();
+  const [userName] = useState(initialUserData.userName);
+  const [] = useState(initialUserData.userRole);
 
   const statCards = [
     {
       title: "Active Beds",
-      value: stats ? `${stats.active_beds}/${stats.total_beds}` : "Loading...",
+      value: "142/200",
       icon: BedDouble,
       color: "cyan",
       change: "+12%",
     },
     {
       title: "On-Duty Staff",
-      value: stats?.on_duty_staff || 0,
+      value: "48",
       icon: Users,
       color: "purple",
       change: "+5%",
     },
     {
       title: "ICU Status",
-      value: stats?.icu_status || "N/A",
+      value: "85% Full",
       icon: HeartPulse,
       color: "red",
       change: "-3%",
     },
     {
       title: "Pending Leaves",
-      value: stats?.pending_leaves || 0,
+      value: "12",
       icon: FileClock,
       color: "yellow",
       change: "+2",
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p className="text-cyan-400">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background text-white p-4 md:p-8">
-      {/* Header with Profile Dropdown */}
+      {/* Header with Clickable Profile */}
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
@@ -120,7 +103,7 @@ export default function DashboardPage() {
             System operational. All modules nominal.
           </p>
         </div>
-        {/* Clickable Profile Dropdown */}
+        {/* This is the clickable profile dropdown */}
         <ProfileDropdown />
       </div>
 
@@ -177,7 +160,6 @@ export default function DashboardPage() {
           </select>
         </div>
         <div className="h-64 flex items-center justify-center text-gray-400 border border-white/5 rounded-lg">
-          {/* Chart will be added here later */}
           <div className="text-center">
             <p> Real-time chart coming soon</p>
             <p className="text-xs mt-2">Will display data from your database</p>
