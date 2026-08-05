@@ -15,6 +15,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 
 function getStoredUserProfile() {
   if (typeof window === "undefined") {
@@ -58,7 +59,7 @@ function getStoredUserProfile() {
   return { userName: "User", userRole: "staff" };
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
 
   const initialUserProfile = getStoredUserProfile();
@@ -139,18 +140,32 @@ export default function Sidebar() {
   // 3. Prevent hydration mismatch by rendering a simple skeleton until mounted
   if (!mounted) {
     return (
-      <div className="flex h-full flex-col justify-between border-r border-white/10 bg-black/40 backdrop-blur-xl p-4">
-        <div className="flex items-center gap-2 px-4 py-6">
-          <Activity className="h-8 w-8 text-cyan-400" />
-          <h1 className="text-2xl font-bold text-white">
-            NEXUS <span className="text-cyan-400">HMS</span>
-          </h1>
+      <div className="relative flex h-full">
+        <div className="flex h-full w-full flex-col justify-between border-r border-white/10 bg-black/40 backdrop-blur-xl p-4">
+          <div className="flex items-center gap-2 px-4 py-6">
+            <Activity className="h-8 w-8 text-cyan-400" />
+            <h1 className="text-2xl font-bold text-white">
+              NEXUS <span className="text-cyan-400">HMS</span>
+            </h1>
+          </div>
+          <div className="mt-6 space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="h-10 rounded-lg bg-white/5 animate-pulse"
+              />
+            ))}
+          </div>
         </div>
-        <div className="mt-6 space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />
-          ))}
-        </div>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 z-50 p-2 text-gray-400 hover:text-white md:hidden"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        )}
       </div>
     );
   }
