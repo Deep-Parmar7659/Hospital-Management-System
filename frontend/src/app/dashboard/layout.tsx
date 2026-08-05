@@ -12,9 +12,9 @@ export default function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-[#0a0a0f] text-white overflow-hidden relative">
+    <div className="flex h-screen bg-background text-white overflow-hidden relative">
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#13131f] border-b border-white/10 flex items-center justify-between px-4 z-40">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface border-b border-white/10 flex items-center justify-between px-4 z-40">
         <button
           onClick={() => setIsSidebarOpen(true)}
           className="p-2 text-gray-300 hover:text-white"
