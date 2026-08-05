@@ -10,16 +10,18 @@ interface StaffMember {
   full_name: string;
   email: string;
   department: string;
-  role: string;
-  phone?: string;
+  designation: string;
+  shift: string;
+  status: string;
 }
 
 interface FormData {
   full_name: string;
   email: string;
   department: string;
-  role: string;
-  phone: string;
+  designation: string;
+  shift: string;
+  status: string;
 }
 
 export default function StaffPage() {
@@ -28,15 +30,16 @@ export default function StaffPage() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Matches your backend StaffCreate schema exactly
   const [formData, setFormData] = useState<FormData>({
     full_name: "",
     email: "",
     department: "General",
-    role: "staff",
-    phone: "",
+    designation: "Doctor",
+    shift: "MORNING",
+    status: "ACTIVE",
   });
 
-  // Clean, standard data fetching without complex useCallback dependency issues
   useEffect(() => {
     let isMounted = true;
 
@@ -62,7 +65,6 @@ export default function StaffPage() {
     };
   }, []);
 
-  // TypeScript-safe input change handler
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -74,25 +76,48 @@ export default function StaffPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      // Send exactly what the backend StaffCreate schema expects
       await api.post("/staff/", formData);
+
       setShowForm(false);
       setFormData({
         full_name: "",
         email: "",
         department: "General",
-        role: "staff",
-        phone: "",
+        designation: "Doctor",
+        shift: "MORNING",
+        status: "ACTIVE",
       });
 
-      // Refresh list after successful addition
+      // Refresh list
       const response = await api.get("/staff/");
       setStaffList(response.data);
     } catch (error) {
-      // Clean Axios error handling
-      if (axios.isAxiosError(error) && error.response?.data?.detail) {
-        alert(error.response.data.detail);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 422) {
+          const detail = error.response.data.detail;
+          const errorMessage = Array.isArray(detail)
+            ? detail
+                .map((d) => {
+                  const validationError = d as {
+                    loc?: Array<string | number>;
+                    msg?: string;
+                  };
+                  const loc = Array.isArray(validationError.loc)
+                    ? validationError.loc.map(String).join(".")
+                    : "unknown";
+                  return `${loc}: ${validationError.msg ?? "Invalid value"}`;
+                })
+                .join("\n")
+            : typeof detail === "string"
+              ? detail
+              : "Validation failed";
+          alert(`Validation Error:\n${errorMessage}`);
+        } else {
+          alert(error.response?.data?.detail || "Failed to add staff");
+        }
       } else {
-        alert("Failed to add staff member");
+        alert("An unexpected error occurred");
       }
     } finally {
       setSubmitting(false);
@@ -126,7 +151,7 @@ export default function StaffPage() {
         </button>
       </div>
 
-      {/* Add Staff Form (Collapsible) */}
+      {/* Add Staff Form */}
       {showForm && (
         <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface mb-8 transition-all duration-300">
           <h2 className="text-xl font-bold text-white mb-4">
@@ -181,31 +206,49 @@ export default function StaffPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Role</label>
+              <label className="block text-sm text-gray-400 mb-1">
+                Designation
+              </label>
               <select
-                name="role"
-                value={formData.role}
+                name="designation"
+                value={formData.designation}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
               >
-                <option value="staff">Staff</option>
-                <option value="hr">HR</option>
-                <option value="admin">Admin</option>
+                <option value="Doctor">Doctor</option>
+                <option value="Nurse">Nurse</option>
+                <option value="Admin">Admin</option>
+                <option value="Technician">Technician</option>
+                <option value="Receptionist">Receptionist</option>
               </select>
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm text-gray-400 mb-1">
-                Phone (Optional)
-              </label>
-              <input
-                name="phone"
-                type="tel"
-                value={formData.phone}
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Shift</label>
+              <select
+                name="shift"
+                value={formData.shift}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
-                placeholder="+1 234 567 890"
-              />
+              >
+                <option value="MORNING">Morning</option>
+                <option value="EVENING">Evening</option>
+                <option value="NIGHT">Night</option>
+              </select>
             </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="ON_LEAVE">On Leave</option>
+              </select>
+            </div>
+
             <div className="md:col-span-2 flex gap-3 mt-2">
               <button
                 type="submit"
@@ -230,7 +273,7 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* Staff Table (Mobile Responsive) */}
+      {/* Staff Table */}
       <div className="glass-panel rounded-xl border border-white/10 bg-surface overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-300">
@@ -238,8 +281,9 @@ export default function StaffPage() {
               <tr>
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Department</th>
-                <th className="px-6 py-4">Role</th>
-                <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Designation</th>
+                <th className="px-6 py-4">Shift</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -247,7 +291,7 @@ export default function StaffPage() {
               {staffList.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     No staff members found. Add one above!
@@ -262,13 +306,24 @@ export default function StaffPage() {
                     <td className="px-6 py-4 font-medium text-white">
                       {staff.full_name}
                     </td>
+                    <td className="px-6 py-4">{staff.department}</td>
+                    <td className="px-6 py-4">{staff.designation}</td>
                     <td className="px-6 py-4">
-                      <span className="px-2 py-1 bg-purple-500/10 text-purple-400 rounded text-xs border border-purple-500/20">
-                        {staff.department}
+                      <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs border border-blue-500/20">
+                        {staff.shift}
                       </span>
                     </td>
-                    <td className="px-6 py-4 capitalize">{staff.role}</td>
-                    <td className="px-6 py-4 text-gray-400">{staff.email}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs border ${
+                          staff.status === "ACTIVE"
+                            ? "bg-green-500/10 text-green-400 border-green-500/20"
+                            : "bg-red-500/10 text-red-400 border-red-500/20"
+                        }`}
+                      >
+                        {staff.status}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <button className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                         <Trash2 className="h-4 w-4" />
