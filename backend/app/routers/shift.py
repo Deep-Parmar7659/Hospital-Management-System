@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+from datetime import datetime  # <-- ADDED THIS IMPORT
 from ..database import get_db
 from ..models.shift import ShiftSchedule, ShiftType
 from ..models.staff import Staff
@@ -9,17 +10,21 @@ from ..schemas.shift import ShiftCreate, ShiftUpdate, ShiftResponse
 
 router = APIRouter()
 
-# GET SHIFTS FOR A WEEK (using exact dates to prevent week number mismatches)
+# GET SHIFTS FOR A WEEK
 @router.get("/week", response_model=List[ShiftResponse])
 async def get_weekly_shifts(
     start_date: str = Query(..., description="YYYY-MM-DD"),
     end_date: str = Query(..., description="YYYY-MM-DD"),
     db: AsyncSession = Depends(get_db)
 ):
+    # FIX: Convert string dates to Python date objects for PostgreSQL comparison
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    
     result = await db.execute(
         select(ShiftSchedule, Staff)
         .join(Staff)
-        .where(ShiftSchedule.date >= start_date, ShiftSchedule.date <= end_date)
+        .where(ShiftSchedule.date >= start, ShiftSchedule.date <= end)
         .order_by(ShiftSchedule.date, Staff.full_name)
     )
     
@@ -39,11 +44,16 @@ async def get_weekly_shifts(
 # ASSIGN SHIFT
 @router.post("/", response_model=ShiftResponse, status_code=201)
 async def assign_shift(shift_data: ShiftCreate, db: AsyncSession = Depends(get_db)):
+    # Convert date to Python date object just in case the schema passes it as a string
+    target_date = shift_data.date
+    if isinstance(target_date, str):
+        target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+
     # Check if shift already exists for this date and staff
     result = await db.execute(
         select(ShiftSchedule).where(
             ShiftSchedule.staff_id == shift_data.staff_id,
-            ShiftSchedule.date == shift_data.date
+            ShiftSchedule.date == target_date
         )
     )
     existing_shift = result.scalar_one_or_none()
@@ -56,7 +66,11 @@ async def assign_shift(shift_data: ShiftCreate, db: AsyncSession = Depends(get_d
         shift = existing_shift
     else:
         # Create new shift
-        new_shift = ShiftSchedule(**shift_data.dict())
+        new_shift = ShiftSchedule(
+            staff_id=shift_data.staff_id,
+            date=target_date,
+            shift_type=shift_data.shift_type
+        )
         db.add(new_shift)
         await db.commit()
         await db.refresh(new_shift)
