@@ -22,14 +22,18 @@ async def create_staff(staff_data: StaffCreate, db: AsyncSession = Depends(get_d
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Create new staff with CORRECT fields matching your schema
     new_staff = Staff(
         full_name=staff_data.full_name,
         email=staff_data.email,
         department=staff_data.department,
-        role=staff_data.role,
-        phone=staff_data.phone
+        designation=staff_data.designation,
+        shift=staff_data.shift,
+        status=staff_data.status
     )
+    
     db.add(new_staff)
     await db.commit()
     await db.refresh(new_staff)
+    
     return new_staff
