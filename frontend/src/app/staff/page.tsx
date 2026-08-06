@@ -98,16 +98,10 @@ export default function StaffPage() {
           const detail = error.response.data.detail;
           const errorMessage = Array.isArray(detail)
             ? detail
-                .map((d) => {
-                  const validationError = d as {
-                    loc?: Array<string | number>;
-                    msg?: string;
-                  };
-                  const loc = Array.isArray(validationError.loc)
-                    ? validationError.loc.map(String).join(".")
-                    : "unknown";
-                  return `${loc}: ${validationError.msg ?? "Invalid value"}`;
-                })
+                .map(
+                  (d: unknown) =>
+                    `${(d as { loc: string[]; msg: string }).loc.join(".")}: ${(d as { loc: string[]; msg: string }).msg}`,
+                )
                 .join("\n")
             : typeof detail === "string"
               ? detail
