@@ -36,8 +36,8 @@ export default function StaffPage() {
     email: "",
     department: "General",
     designation: "Doctor",
-    shift: "MORNING",
-    status: "ACTIVE",
+    shift: "Morning",
+    status: "Active",
   });
 
   useEffect(() => {
@@ -85,8 +85,8 @@ export default function StaffPage() {
         email: "",
         department: "General",
         designation: "Doctor",
-        shift: "MORNING",
-        status: "ACTIVE",
+        shift: "Morning",
+        status: "Active",
       });
 
       // Refresh list
@@ -224,9 +224,9 @@ export default function StaffPage() {
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
               >
-                <option value="MORNING">Morning</option>
-                <option value="EVENING">Evening</option>
-                <option value="NIGHT">Night</option>
+                <option value="Morning">Morning</option>
+                <option value="Evening">Evening</option>
+                <option value="Night">Night</option>
               </select>
             </div>
             <div>
@@ -237,9 +237,9 @@ export default function StaffPage() {
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
               >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="ON_LEAVE">On Leave</option>
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Off Duty">Off Duty</option>
               </select>
             </div>
 
