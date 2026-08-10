@@ -18,7 +18,7 @@ async def create_leave_request(leave: LeaveCreate, db: AsyncSession = Depends(ge
     if not staff:
         raise HTTPException(status_code=404, detail="Staff member not found")
 
-    new_leave = LeaveRequest(**leave.dict())
+    new_leave = LeaveRequest(**leave.model_dump())
     db.add(new_leave)
     await db.commit()
     await db.refresh(new_leave)
