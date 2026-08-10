@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BedDouble, Users, HeartPulse, FileClock, LogOut } from "lucide-react";
+import DashboardCharts from "@/components/DashboardCharts";
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
@@ -170,15 +171,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Chart */}
-      <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface">
-        <h2 className="text-xl font-bold text-white mb-6">
-          Hospital Metrics (Weekly)
-        </h2>
-        <div className="h-64 flex items-center justify-center text-gray-400 border border-white/5 rounded-lg">
-          Chart coming soon
-        </div>
-      </div>
+      {/* Real-Time Charts */}
+      <DashboardCharts />
     </div>
   );
 }
