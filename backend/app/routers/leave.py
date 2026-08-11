@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_  # ✅ Added or_ for querying multiple designations
+from sqlalchemy import select
 from typing import List
 from ..database import get_db
 from ..models.leave import LeaveRequest, LeaveStatus
 from ..models.staff import Staff
-from ..models.notification import Notification  # ✅ NEW: Import Notification model
 from ..schemas.leave import LeaveCreate, LeaveStatusUpdate, LeaveResponse
 
 router = APIRouter()
@@ -13,7 +12,6 @@ router = APIRouter()
 # CREATE LEAVE REQUEST
 @router.post("/", response_model=LeaveResponse, status_code=201)
 async def create_leave_request(leave: LeaveCreate, db: AsyncSession = Depends(get_db)):
-    # Verify staff exists
     staff_result = await db.execute(select(Staff).where(Staff.id == leave.staff_id))
     staff = staff_result.scalar_one_or_none()
     if not staff:
@@ -21,21 +19,6 @@ async def create_leave_request(leave: LeaveCreate, db: AsyncSession = Depends(ge
 
     new_leave = LeaveRequest(**leave.model_dump())
     db.add(new_leave)
-    
-    # ✅ NEW: Notify all HR and Admin staff about the new request
-    managers_result = await db.execute(
-        select(Staff).where(or_(Staff.designation == "HR", Staff.designation == "Admin"))
-    )
-    managers = managers_result.scalars().all()
-    
-    for manager in managers:
-        notification = Notification(
-            staff_id=manager.id,
-            message=f"New leave request from {staff.full_name} ({staff.department}) for {leave.leave_type}.",
-            is_read=False
-        )
-        db.add(notification)
-    
     await db.commit()
     await db.refresh(new_leave)
 
@@ -77,7 +60,7 @@ async def get_all_leave_requests(db: AsyncSession = Depends(get_db)):
         ))
     return leaves
 
-# UPDATE LEAVE STATUS (Approve/Reject with Admin Override)
+# UPDATE LEAVE STATUS (Approve/Reject)
 @router.patch("/{leave_id}/status", response_model=LeaveResponse)
 async def update_leave_status(
     leave_id: int, 
@@ -90,25 +73,13 @@ async def update_leave_status(
     if not leave:
         raise HTTPException(status_code=404, detail="Leave request not found")
     
-    # ✅ REMOVED: The check that prevented updating non-pending requests. 
-    # This allows Admin to override HR's approval (e.g., change "Approved" to "Rejected").
-
+    # Admin can override HR by simply updating the status to the latest value
     leave.status = status_update.status
     await db.commit()
     await db.refresh(leave)
 
-    # Fetch staff info for response and notification
     staff_result = await db.execute(select(Staff).where(Staff.id == leave.staff_id))
     staff = staff_result.scalar_one()
-
-    # ✅ NEW: Notify the staff member about the final decision
-    notification = Notification(
-        staff_id=leave.staff_id,
-        message=f"Your {leave.leave_type} leave request has been {status_update.status.lower()} by {status_update.updated_by_role.upper()}.",
-        is_read=False
-    )
-    db.add(notification)
-    await db.commit()
 
     return LeaveResponse(
         id=leave.id,
