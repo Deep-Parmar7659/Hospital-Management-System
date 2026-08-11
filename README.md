@@ -118,20 +118,18 @@ uvicorn app.main:app --reload
 
 ### 2. Frontend Setup
 
+```bash
 # Navigate to frontend directory
-
 cd frontend
 
 # Install dependencies
-
 npm install
 
 # Configure environment variables
-
 cp .env.example .env.local
 
 # Edit .env.local with your NEXT_PUBLIC_API_URL
 
 # Start the development server
-
 npm run dev
+```
