@@ -12,7 +12,7 @@ class LeaveCreate(BaseModel):
 
 class LeaveStatusUpdate(BaseModel):
     status: LeaveStatus
-    updated_by_role: str 
+    updated_by_role: Optional[str] = "system" # Made optional
 
 class LeaveResponse(BaseModel):
     id: int
