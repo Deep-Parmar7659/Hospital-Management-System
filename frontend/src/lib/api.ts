@@ -46,57 +46,51 @@ export const authService = {
         const payload = JSON.parse(jsonPayload);
 
         console.log("🔍 Decoded JWT payload:", payload);
-        console.log("🔍 Looking for staff with email:", email);
 
-        // Fetch staff list
-        let foundStaffId = 1;
-        let foundStaffName = "Unknown";
-        try {
-          const staffResponse = await api.get<StaffSummary[]>("/staff/");
-          const staffList = staffResponse.data;
-          console.log("📋 Total staff members found:", staffList.length);
-          console.log("📋 Staff list:", staffList);
+        // Check if user is admin
+        const userRole = payload.role || "staff";
 
-          // Try to find matching staff (case-insensitive)
-          const matchedStaff = staffList.find((s: StaffSummary) => {
-            const match = s.email.toLowerCase() === email.toLowerCase();
-            console.log(`Checking ${s.email} === ${email}? ${match}`);
-            return match;
-          });
-
-          if (matchedStaff) {
-            foundStaffId = matchedStaff.id;
-            foundStaffName = matchedStaff.full_name;
-            console.log(
-              "✅ MATCH FOUND! staff_id:",
-              foundStaffId,
-              "name:",
-              foundStaffName,
-            );
-          } else {
-            console.warn("❌ NO MATCH FOUND for email:", email);
-            console.warn(
-              "Available emails:",
-              staffList.map((s: StaffSummary) => s.email),
-            );
-          }
-        } catch (err) {
-          console.error("❌ Failed to fetch staff list:", err);
-        }
-
-        // Save user data
-        const userData = {
+        const userData: {
+          email: string;
+          role: string;
+          full_name: string;
+          staff_id: number | null;
+        } = {
           email: payload.sub || email,
-          role: payload.role || "staff",
-          full_name: payload.full_name || foundStaffName || email.split("@")[0],
-          staff_id: foundStaffId,
+          role: userRole,
+          full_name: payload.full_name || email.split("@")[0],
+          staff_id: null, // Admins don't have staff_id
         };
+
+        // Only fetch staff_id for non-admin users
+        if (userRole !== "admin") {
+          console.log("🔍 Looking for staff with email:", email);
+
+          try {
+            const staffResponse = await api.get<StaffSummary[]>("/staff/");
+            const staffList = staffResponse.data;
+            console.log("📋 Total staff members found:", staffList.length);
+
+            const matchedStaff = staffList.find(
+              (s: StaffSummary) =>
+                s.email.toLowerCase() === email.toLowerCase(),
+            );
+
+            if (matchedStaff) {
+              userData.staff_id = matchedStaff.id;
+              console.log("✅ Staff member found! ID:", matchedStaff.id);
+            } else {
+              console.warn("❌ Staff member not found for this email");
+            }
+          } catch (err) {
+            console.warn("Could not fetch staff list:", err);
+          }
+        } else {
+          console.log("👤 Admin user - no staff_id needed");
+        }
 
         localStorage.setItem("nexus_user", JSON.stringify(userData));
         console.log("💾 Saved to localStorage:", userData);
-        alert(
-          `Login successful!\nStaff ID: ${foundStaffId}\nName: ${foundStaffName}`,
-        );
       }
       return response.data;
     } catch (error) {

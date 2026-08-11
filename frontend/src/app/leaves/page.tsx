@@ -101,13 +101,18 @@ export default function LeavesPage() {
 
   const handleRequestLeave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent admins from requesting leaves
+    if (!currentStaffId || userRole === "admin") {
+      alert("Only staff members can request leaves");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await api.post("/leaves/", formData);
       setShowModal(false);
       fetchLeaves();
-
-      // Reset form with the CORRECT dynamic staff ID
       setFormData({
         staff_id: currentStaffId,
         leave_type: "Casual",
@@ -152,12 +157,16 @@ export default function LeavesPage() {
               Track and approve staff time-off requests.
             </p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Request Leave
-          </button>
+
+          {/* Only show "Request Leave" button for staff members (not admins) */}
+          {userRole === "staff" && currentStaffId && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Request Leave
+            </button>
+          )}
         </div>
 
         {/* Stats */}
