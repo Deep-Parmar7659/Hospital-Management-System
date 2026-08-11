@@ -1,9 +1,10 @@
 # 🏥 NEXUS Hospital Management System (HMS)
 
-A futuristic, high-performance Hospital Management System with a sleek glassmorphic UI, dark/light mode, and real-time operational capabilities.
+A futuristic, high-performance, and fully responsive Hospital Management System built with Next.js and FastAPI. Features a sleek glassmorphic UI, role-based access control, real-time analytics, and automated payroll processing.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green?logo=fastapi)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?logo=typescript)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?logo=postgresql)
 ![Vercel](https://img.shields.io/badge/Vercel-Deployed-success?logo=vercel)
 
@@ -11,39 +12,43 @@ A futuristic, high-performance Hospital Management System with a sleek glassmorp
 
 ### 🎨 Modern UI/UX
 
-- **Glassmorphism Design**: Futuristic translucent panels with blur effects
-- **Dark/Light Mode**: Seamless theme switching with persistent preferences
-- **Neon Accents**: Cyan (#00F0FF) and Purple (#7000FF) color scheme
-- **Responsive Design**: Works flawlessly on desktop, tablet, and mobile
+- **Glassmorphism Design**: Futuristic translucent panels with backdrop blur effects.
+- **Dark/Light Mode**: Seamless theme switching with persistent user preferences.
+- **Neon Accents**: Custom cyan and purple color scheme for a modern tech feel.
+- **Fully Responsive**: Optimized for desktop, tablet, and mobile devices with a collapsible sidebar.
 
-### Core Modules
+### 🏥 Core Modules
 
-- **Dashboard**: Real-time hospital metrics with interactive charts
-- **Staff Management**: Complete staff directory and profiles
-- **Shift Scheduling**: Automated shift assignment and calendar view
-- **Attendance Tracking**: Clock-in/out system with analytics
-- **Leave Requests**: Digital leave management system
-- **Payroll System**: Automated salary calculation with PDF generation
-- **Reports**: Comprehensive hospital analytics and reporting
+- **Dashboard**: Real-time hospital metrics with interactive Recharts (Area, Bar, Pie, Radar).
+- **Staff Management**: Complete CRUD operations for hospital personnel, departments, and designations.
+- **Attendance Tracking**: Real-time clock-in/clock-out system with late-arrival detection.
+- **Leave Management**: Digital leave request workflow with Admin/HR approval/rejection capabilities.
+- **Payroll System**: Automated salary calculation (base + overtime - deductions) with **PDF payslip generation** (via jsPDF).
+- **Reports & Analytics**: High-level operational intelligence, department-wise expenditure, and attendance trends.
 
-### 🔐 Security
+### 🔐 Security & Access
 
-- JWT-based authentication
-- Role-based access control (Admin, HR, Staff)
-- Secure password hashing (bcrypt)
-- Protected API routes
+- JWT-based stateless authentication.
+- Role-Based Access Control (RBAC): Admin, HR, and Staff permissions.
+- Secure password hashing (bcrypt).
+- Protected API routes and frontend middleware.
 
 ### ⚡ Performance
 
-- **Dynamic Imports**: Code splitting for faster initial load
-- **Database Indexing**: Optimized PostgreSQL queries
-- **Static Generation**: Next.js ISR for instant page loads
-- **Async Operations**: Non-blocking database operations
+- **Code Splitting**: Dynamic imports for faster initial page loads.
+- **Async Database Ops**: Non-blocking SQLAlchemy async queries.
+- **Optimized Rendering**: Next.js App Router with efficient client/server component separation.
+
+---
 
 ## 🚀 Live Demo
 
-**Frontend:** https://hospital-management-system-iota-beige.vercel.app  
-**Backend API:** https://nexus-hms-backend.onrender.com/docs
+- **Frontend Application**: [https://hospital-management-system-86w8wo19h-deep-parmar7659s-projects.vercel.app](https://hospital-management-system-86w8wo19h-deep-parmar7659s-projects.vercel.app)
+- **Backend API Docs**: [https://nexus-hms-backend.onrender.com/docs](https://nexus-hms-backend.onrender.com/docs)
+
+_(Note: Frontend URL may update with new deployments. Check Vercel for the latest production link.)_
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -51,9 +56,10 @@ A futuristic, high-performance Hospital Management System with a sleek glassmorp
 
 - **Framework:** Next.js 14 (App Router)
 - **Language:** TypeScript
-- **Styling:** Tailwind CSS v4
-- **UI Components:** Custom glassmorphic components
+- **Styling:** Tailwind CSS
+- **Animations:** Framer Motion
 - **Charts:** Recharts
+- **PDF Generation:** jsPDF
 - **HTTP Client:** Axios
 - **Icons:** Lucide React
 
@@ -63,44 +69,69 @@ A futuristic, high-performance Hospital Management System with a sleek glassmorp
 - **Language:** Python 3.14
 - **Database:** PostgreSQL
 - **ORM:** SQLAlchemy (Async)
-- **Authentication:** JWT (python-jose)
-- **Validation:** Pydantic
+- **Authentication:** JWT (`python-jose`)
+- **Validation:** Pydantic v2
 
 ### DevOps & Deployment
 
-- **Frontend Hosting:** Vercel
+- **Frontend Hosting:** Vercel (Auto-deploy on `main` branch push)
 - **Backend Hosting:** Render
 - **Database:** Render PostgreSQL
 - **Version Control:** Git & GitHub
+
+---
 
 ## 📦 Installation & Setup
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Python 3.14+
-- PostgreSQL 15+
+- Python 3.10+ (Project developed on 3.14)
+- PostgreSQL 15+ (Local or Cloud)
 
-### Backend Setup
+### 1. Backend Setup
 
 ```bash
-# Navigate to backend
+# Navigate to backend directory
 cd backend
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file
+# Configure environment variables
 cp .env.example .env
-# Edit .env with your database credentials
+# Edit .env with your DATABASE_URL, SECRET_KEY, etc.
 
-# Run database migrations
+# Run database migrations (create tables)
 python create_tables.py
 
-# Start server
+# Start the development server
 uvicorn app.main:app --reload
 ```
+
+### 2. Frontend Setup
+
+# Navigate to frontend directory
+
+cd frontend
+
+# Install dependencies
+
+npm install
+
+# Configure environment variables
+
+cp .env.example .env.local
+
+# Edit .env.local with your NEXT_PUBLIC_API_URL
+
+# Start the development server
+
+npm run dev
