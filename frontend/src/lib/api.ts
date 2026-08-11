@@ -1,5 +1,11 @@
 import axios from "axios";
 
+type StaffSummary = {
+  id: number;
+  email: string;
+  full_name: string;
+};
+
 // Base URL for your FastAPI backend - reads from Vercel environment variable
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
@@ -27,7 +33,7 @@ export const authService = {
       if (response.data.access_token) {
         localStorage.setItem("nexus_token", response.data.access_token);
 
-        // Decode JWT to get email and role
+        // Decode JWT
         const token = response.data.access_token;
         const base64Url = token.split(".")[1];
         const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -39,43 +45,62 @@ export const authService = {
         );
         const payload = JSON.parse(jsonPayload);
 
-        // Fetch staff list to find the matching staff_id
-        let foundStaffId = 1; // Default fallback
+        console.log("🔍 Decoded JWT payload:", payload);
+        console.log("🔍 Looking for staff with email:", email);
+
+        // Fetch staff list
+        let foundStaffId = 1;
+        let foundStaffName = "Unknown";
         try {
-          const staffResponse = await api.get("/staff/");
+          const staffResponse = await api.get<StaffSummary[]>("/staff/");
           const staffList = staffResponse.data;
-          const matchedStaff = staffList.find(
-            (s: { email: string }) =>
-              s.email.toLowerCase() === email.toLowerCase(),
-          );
+          console.log("📋 Total staff members found:", staffList.length);
+          console.log("📋 Staff list:", staffList);
+
+          // Try to find matching staff (case-insensitive)
+          const matchedStaff = staffList.find((s: StaffSummary) => {
+            const match = s.email.toLowerCase() === email.toLowerCase();
+            console.log(`Checking ${s.email} === ${email}? ${match}`);
+            return match;
+          });
 
           if (matchedStaff) {
             foundStaffId = matchedStaff.id;
+            foundStaffName = matchedStaff.full_name;
             console.log(
-              "✅ Found staff_id:",
+              "✅ MATCH FOUND! staff_id:",
               foundStaffId,
-              "for email:",
-              email,
+              "name:",
+              foundStaffName,
+            );
+          } else {
+            console.warn("❌ NO MATCH FOUND for email:", email);
+            console.warn(
+              "Available emails:",
+              staffList.map((s: StaffSummary) => s.email),
             );
           }
         } catch (err) {
-          console.warn("Could not fetch staff list:", err);
+          console.error("❌ Failed to fetch staff list:", err);
         }
 
-        // Save complete user data INCLUDING staff_id
+        // Save user data
         const userData = {
           email: payload.sub || email,
           role: payload.role || "staff",
-          full_name: payload.full_name || email.split("@")[0],
-          staff_id: foundStaffId, // ✅ THIS IS THE FIX
+          full_name: payload.full_name || foundStaffName || email.split("@")[0],
+          staff_id: foundStaffId,
         };
 
         localStorage.setItem("nexus_user", JSON.stringify(userData));
-        console.log("✅ Login successful. User data saved:", userData);
+        console.log("💾 Saved to localStorage:", userData);
+        alert(
+          `Login successful!\nStaff ID: ${foundStaffId}\nName: ${foundStaffName}`,
+        );
       }
       return response.data;
     } catch (error) {
-      console.error("Login API call failed:", error);
+      console.error("Login failed:", error);
       throw error;
     }
   },
