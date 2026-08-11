@@ -42,9 +42,29 @@ export default function LeavesPage() {
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const getStoredUser = () => {
+    if (typeof window === "undefined") return null;
+
+    const storedUser = window.localStorage.getItem("nexus_user");
+    if (!storedUser) return null;
+
+    try {
+      return JSON.parse(storedUser);
+    } catch (e) {
+      console.error("Error parsing user:", e);
+      return null;
+    }
+  };
+
+  const storedUser = getStoredUser();
+
+  // Initialize from the stored user once; no extra effect synchronization needed.
+  const [userRole] = useState(storedUser?.role || "staff");
+  const [currentStaffId] = useState<number>(storedUser?.staff_id || 1);
+
   // Form state
   const [formData, setFormData] = useState({
-    staff_id: 1, // Hardcoded for demo (In real app, get from JWT/Staff list)
+    staff_id: storedUser?.staff_id || 1,
     leave_type: "Casual",
     start_date: "",
     end_date: "",
@@ -52,8 +72,12 @@ export default function LeavesPage() {
   });
 
   useEffect(() => {
-    if (!authService.isAuthenticated()) router.push("/login");
-    else fetchLeaves();
+    if (!authService.isAuthenticated()) {
+      router.push("/login");
+      return;
+    }
+
+    fetchLeaves();
   }, [router]);
 
   async function fetchLeaves() {
@@ -82,9 +106,10 @@ export default function LeavesPage() {
       await api.post("/leaves/", formData);
       setShowModal(false);
       fetchLeaves();
-      // Reset form
+
+      // Reset form with the CORRECT dynamic staff ID
       setFormData({
-        staff_id: 1,
+        staff_id: currentStaffId,
         leave_type: "Casual",
         start_date: "",
         end_date: "",
@@ -115,13 +140,13 @@ export default function LeavesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8 text-white">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <CalendarDays className="text-primary" /> Leave Management
+              <CalendarDays className="text-cyan-400" /> Leave Management
             </h1>
             <p className="text-gray-400 mt-1">
               Track and approve staff time-off requests.
@@ -129,7 +154,7 @@ export default function LeavesPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="neon-button flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" /> Request Leave
           </button>
@@ -137,8 +162,8 @@ export default function LeavesPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="glass-panel p-6 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-amber-400/10">
+          <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-amber-500/10">
               <Clock className="w-6 h-6 text-amber-400" />
             </div>
             <div>
@@ -148,8 +173,8 @@ export default function LeavesPage() {
               </p>
             </div>
           </div>
-          <div className="glass-panel p-6 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-emerald-400/10">
+          <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-emerald-500/10">
               <CheckCircle className="w-6 h-6 text-emerald-400" />
             </div>
             <div>
@@ -159,8 +184,8 @@ export default function LeavesPage() {
               </p>
             </div>
           </div>
-          <div className="glass-panel p-6 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-red-400/10">
+          <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-red-500/10">
               <XCircle className="w-6 h-6 text-red-400" />
             </div>
             <div>
@@ -173,16 +198,16 @@ export default function LeavesPage() {
         </div>
 
         {/* Table */}
-        <div className="glass-panel overflow-hidden">
+        <div className="glass-panel rounded-xl border border-white/10 bg-surface overflow-hidden">
           {isLoading ? (
             <div className="p-12 flex flex-col items-center justify-center text-gray-400">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+              <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mb-4" />
               <p>Loading leave requests...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-white/5 text-gray-400 text-sm uppercase tracking-wider">
+                <thead className="bg-background text-gray-400 text-sm uppercase tracking-wider">
                   <tr>
                     <th className="p-4">Staff</th>
                     <th className="p-4">Type</th>
@@ -244,13 +269,15 @@ export default function LeavesPage() {
                             </span>
                           </td>
                           <td className="p-4 text-right">
-                            {leave.status === "Pending" ? (
+                            {/* Only show approve/reject buttons to Admin or HR */}
+                            {leave.status === "Pending" &&
+                            (userRole === "admin" || userRole === "hr") ? (
                               <div className="flex justify-end gap-2">
                                 <button
                                   onClick={() =>
                                     handleStatusUpdate(leave.id, "Approved")
                                   }
-                                  className="p-2 rounded-lg bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 transition-colors"
+                                  className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
                                   title="Approve"
                                 >
                                   <CheckCircle className="w-4 h-4" />
@@ -259,7 +286,7 @@ export default function LeavesPage() {
                                   onClick={() =>
                                     handleStatusUpdate(leave.id, "Rejected")
                                   }
-                                  className="p-2 rounded-lg bg-red-400/10 text-red-400 hover:bg-red-400/20 transition-colors"
+                                  className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                                   title="Reject"
                                 >
                                   <XCircle className="w-4 h-4" />
@@ -305,7 +332,7 @@ export default function LeavesPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-panel w-full max-w-lg p-6 relative"
+              className="glass-panel w-full max-w-lg p-6 relative rounded-xl border border-white/10 bg-surface"
             >
               <button
                 onClick={() => setShowModal(false)}
@@ -315,7 +342,7 @@ export default function LeavesPage() {
               </button>
 
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                <FileText className="text-primary" /> Request Time Off
+                <FileText className="text-cyan-400" /> Request Time Off
               </h2>
 
               <form onSubmit={handleRequestLeave} className="space-y-4">
@@ -324,7 +351,7 @@ export default function LeavesPage() {
                     Leave Type
                   </label>
                   <select
-                    className="glass-input w-full"
+                    className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
                     value={formData.leave_type}
                     onChange={(e) =>
                       setFormData({ ...formData, leave_type: e.target.value })
@@ -345,7 +372,7 @@ export default function LeavesPage() {
                     <input
                       required
                       type="date"
-                      className="glass-input w-full"
+                      className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
                       value={formData.start_date}
                       onChange={(e) =>
                         setFormData({ ...formData, start_date: e.target.value })
@@ -359,7 +386,7 @@ export default function LeavesPage() {
                     <input
                       required
                       type="date"
-                      className="glass-input w-full"
+                      className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
                       value={formData.end_date}
                       onChange={(e) =>
                         setFormData({ ...formData, end_date: e.target.value })
@@ -375,7 +402,7 @@ export default function LeavesPage() {
                   <textarea
                     required
                     rows={3}
-                    className="glass-input w-full resize-none"
+                    className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400 resize-none"
                     value={formData.reason}
                     onChange={(e) =>
                       setFormData({ ...formData, reason: e.target.value })
@@ -387,7 +414,7 @@ export default function LeavesPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="neon-button w-full mt-6 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full mt-6 flex items-center justify-center gap-2 px-4 py-3 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
