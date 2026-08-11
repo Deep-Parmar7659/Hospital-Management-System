@@ -1,61 +1,67 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { BedDouble, Users, HeartPulse, FileClock, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
 import DashboardCharts from "@/components/DashboardCharts";
+import { BedDouble, Users, HeartPulse, FileClock, LogOut } from "lucide-react";
+
+function getInitialUserProfile() {
+  if (typeof window === "undefined") {
+    return {
+      name: "User",
+      email: "",
+      role: "staff",
+    };
+  }
+
+  const token = localStorage.getItem("nexus_token");
+  const storedUser = localStorage.getItem("nexus_user");
+
+  let name = "User";
+  let email = "";
+  let role = "staff";
+
+  if (storedUser) {
+    try {
+      const user = JSON.parse(storedUser);
+      name = user.full_name || user.email?.split("@")[0] || "User";
+      email = user.email || "";
+      role = user.role || "staff";
+    } catch (e) {
+      console.error("Error parsing user:", e);
+    }
+  } else if (token) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join(""),
+      );
+      const payload = JSON.parse(jsonPayload);
+      email = payload.sub || "";
+      name = payload.full_name || email.split("@")[0] || "User";
+      role = payload.role || "staff";
+    } catch (e) {
+      console.error("Error decoding token:", e);
+    }
+  }
+
+  return { name, email, role };
+}
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
-  const [userProfile, setUserProfile] = useState({
-    name: "User",
-    email: "",
-    role: "staff",
-  });
+  const [userProfile] = useState(getInitialUserProfile);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    const timeoutId = setTimeout(() => {
       setMounted(true);
+    }, 0);
 
-      const token = localStorage.getItem("nexus_token");
-      const storedUser = localStorage.getItem("nexus_user");
-
-      let name = "User";
-      let email = "";
-      let role = "staff";
-
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          name = user.full_name || user.email?.split("@")[0] || "User";
-          email = user.email || "";
-          role = user.role || "staff";
-        } catch (e) {
-          console.error("Error parsing user:", e);
-        }
-      } else if (token) {
-        try {
-          const base64Url = token.split(".")[1];
-          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-          const jsonPayload = decodeURIComponent(
-            atob(base64)
-              .split("")
-              .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-              .join(""),
-          );
-          const payload = JSON.parse(jsonPayload);
-          email = payload.sub || "";
-          name = payload.full_name || email.split("@")[0] || "User";
-          role = payload.role || "staff";
-        } catch (e) {
-          console.error("Error decoding token:", e);
-        }
-      }
-
-      setUserProfile({ name, email, role });
-    });
-
-    return () => window.cancelAnimationFrame(frame);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const handleLogout = () => {
@@ -132,7 +138,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[
           {
@@ -171,7 +177,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Real-Time Charts */}
+      {/* Real-Time Charts Component */}
       <DashboardCharts />
     </div>
   );
