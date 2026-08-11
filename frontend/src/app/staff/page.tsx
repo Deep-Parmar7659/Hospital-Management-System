@@ -224,6 +224,7 @@ export default function StaffPage() {
               >
                 <option value="Doctor">Doctor</option>
                 <option value="Nurse">Nurse</option>
+                <option value="HR">HR</option>
                 <option value="Admin">Admin</option>
                 <option value="Technician">Technician</option>
                 <option value="Receptionist">Receptionist</option>

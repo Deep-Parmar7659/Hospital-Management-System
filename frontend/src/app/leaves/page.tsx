@@ -129,7 +129,14 @@ export default function LeavesPage() {
 
   const handleStatusUpdate = async (leaveId: number, newStatus: string) => {
     try {
-      await api.patch(`/leaves/${leaveId}/status`, { status: newStatus });
+      // Get the current user's role from localStorage
+      const storedUser = localStorage.getItem("nexus_user");
+      const userRole = storedUser ? JSON.parse(storedUser).role : "staff";
+
+      await api.patch(`/leaves/${leaveId}/status`, {
+        status: newStatus,
+        updated_by_role: userRole,
+      });
       fetchLeaves();
     } catch (error: unknown) {
       alert(getErrorMessage(error, "Failed to update status"));

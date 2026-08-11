@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, select
 from typing import List
