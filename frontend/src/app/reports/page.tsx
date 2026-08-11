@@ -32,7 +32,7 @@ import {
   DollarSign,
 } from "lucide-react";
 
-const COLORS = ["#00f0ff", "#7000ff", "#ff003c", "#fbbf24", "#10b981"];
+const COLORS = ["#22d3ee", "#c084fc", "#f87171", "#fbbf24", "#34d399"];
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -55,32 +55,41 @@ export default function ReportsPage() {
 
   const [data, setData] = useState<ReportsData | null>(null);
 
-  const fetchReports = async () => {
-    try {
-      const res = await api.get("/reports/dashboard-stats");
-      setData(res.data);
-    } catch (error) {
-      console.error("Failed to fetch reports:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!authService.isAuthenticated()) {
       router.push("/login");
-    } else {
-      (async () => {
-        await fetchReports();
-      })();
+      return;
     }
+
+    let isMounted = true;
+
+    const fetchReports = async () => {
+      try {
+        const res = await api.get("/reports/dashboard-stats");
+        if (isMounted) {
+          setData(res.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch reports:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchReports();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   if (isLoading || !data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <Loader2 className="w-12 h-12 animate-spin text-cyan-400" />
           <p className="text-gray-400 animate-pulse">
             Compiling analytics matrix...
           </p>
@@ -90,33 +99,30 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8 text-white">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Activity className="text-primary" /> Reports & Analytics
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Activity className="text-cyan-400" /> Reports & Analytics
           </h1>
           <p className="text-gray-400 mt-1">
             High-level operational intelligence and metrics.
           </p>
         </div>
 
-        {/* Top Row: Donut & Bar Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Staff Distribution (Donut) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-panel p-6"
+            className="glass-panel p-6 rounded-xl border border-white/10 bg-surface"
           >
             <div className="flex items-center gap-2 mb-4">
-              <PieIcon className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-bold text-white">
+              <PieIcon className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-lg font-bold">
                 Staff Distribution by Department
               </h2>
             </div>
-            <div className="h-75 w-full">
+            <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -155,20 +161,19 @@ export default function ReportsPage() {
             </div>
           </motion.div>
 
-          {/* Payroll Expenditure (Bar) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="glass-panel p-6"
+            className="glass-panel p-6 rounded-xl border border-white/10 bg-surface"
           >
             <div className="flex items-center gap-2 mb-4">
-              <DollarSign className="w-5 h-5 text-secondary" />
-              <h2 className="text-lg font-bold text-white">
+              <DollarSign className="w-5 h-5 text-purple-400" />
+              <h2 className="text-lg font-bold">
                 Payroll Expenditure by Department
               </h2>
             </div>
-            <div className="h-75 w-full">
+            <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.payroll_by_dept}>
                   <CartesianGrid
@@ -197,7 +202,7 @@ export default function ReportsPage() {
                   />
                   <Bar
                     dataKey="expenditure"
-                    fill="#7000ff"
+                    fill="#c084fc"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
@@ -206,22 +211,20 @@ export default function ReportsPage() {
           </motion.div>
         </div>
 
-        {/* Bottom Row: Line & Radar Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Attendance Trends (Line) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="glass-panel p-6 lg:col-span-2"
+            className="glass-panel p-6 rounded-xl border border-white/10 bg-surface lg:col-span-2"
           >
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold">
                 Attendance Trends (Last 6 Months)
               </h2>
             </div>
-            <div className="h-75 w-full">
+            <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.attendance_trends}>
                   <CartesianGrid
@@ -244,17 +247,17 @@ export default function ReportsPage() {
                   <Line
                     type="monotone"
                     dataKey="present"
-                    stroke="#10b981"
+                    stroke="#34d399"
                     strokeWidth={3}
-                    dot={{ fill: "#10b981" }}
+                    dot={{ fill: "#34d399" }}
                     activeDot={{ r: 6 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="absent"
-                    stroke="#ff003c"
+                    stroke="#f87171"
                     strokeWidth={3}
-                    dot={{ fill: "#ff003c" }}
+                    dot={{ fill: "#f87171" }}
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
@@ -262,20 +265,17 @@ export default function ReportsPage() {
             </div>
           </motion.div>
 
-          {/* Hospital Performance (Radar) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="glass-panel p-6"
+            className="glass-panel p-6 rounded-xl border border-white/10 bg-surface"
           >
             <div className="flex items-center gap-2 mb-4">
-              <Activity className="w-5 h-5 text-accent" />
-              <h2 className="text-lg font-bold text-white">
-                Performance Metrics
-              </h2>
+              <Activity className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-lg font-bold">Performance Metrics</h2>
             </div>
-            <div className="h-75 w-full">
+            <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart
                   cx="50%"
@@ -297,8 +297,8 @@ export default function ReportsPage() {
                   <Radar
                     name="Score"
                     dataKey="A"
-                    stroke="#00f0ff"
-                    fill="#00f0ff"
+                    stroke="#22d3ee"
+                    fill="#22d3ee"
                     fillOpacity={0.3}
                     strokeWidth={2}
                   />
