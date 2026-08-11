@@ -43,7 +43,55 @@ export default function AttendancePage() {
     useState<CurrentUserAttendance | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
-  const currentUserId = 1;
+
+  // Dynamic user profile state initialized from localStorage to avoid
+  // synchronous state updates inside an effect.
+  const [userProfile] = useState(() => {
+    if (typeof window === "undefined") {
+      return { name: "User", department: "General" };
+    }
+
+    const storedUser = localStorage.getItem("nexus_user");
+    if (!storedUser) {
+      return { name: "User", department: "General" };
+    }
+
+    try {
+      const user = JSON.parse(storedUser);
+      return {
+        name: user.full_name || user.email?.split("@")[0] || "User",
+        department: user.department || "General",
+      };
+    } catch (e) {
+      console.error("Error parsing user:", e);
+      return { name: "User", department: "General" };
+    }
+  });
+  const [currentUserId] = useState<number>(() => {
+    if (typeof window === "undefined") {
+      return 1;
+    }
+
+    const storedUser = localStorage.getItem("nexus_user");
+    if (!storedUser) {
+      return 1;
+    }
+
+    try {
+      const user = JSON.parse(storedUser);
+      return user.staff_id || 1;
+    } catch (e) {
+      console.error("Error parsing user:", e);
+      return 1;
+    }
+  });
+
+  useEffect(() => {
+    if (!authService.isAuthenticated()) {
+      router.push("/login");
+    }
+  }, [router]);
+
   const fetchAttendanceData = useCallback(async () => {
     try {
       const [todayRes, historyRes] = await Promise.all([
@@ -74,15 +122,27 @@ export default function AttendancePage() {
   }, [currentUserId]);
 
   useEffect(() => {
-    const initializeAttendance = async () => {
-      if (!authService.isAuthenticated()) {
-        router.push("/login");
-      } else {
+    if (!currentUserId) return;
+
+    let isActive = true;
+
+    const loadAttendanceData = async () => {
+      try {
         await fetchAttendanceData();
+      } finally {
+        if (isActive) {
+          // Keep the effect side-effect minimal while still allowing the fetch
+          // work to resolve asynchronously.
+        }
       }
     };
-    initializeAttendance();
-  }, [router, fetchAttendanceData]);
+
+    void loadAttendanceData();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentUserId, fetchAttendanceData]);
 
   const handleCheckIn = async () => {
     setIsActionLoading(true);
@@ -112,9 +172,12 @@ export default function AttendancePage() {
 
   const formatTime = (dateString: string | null) => {
     if (!dateString) return "--:--";
-    return new Date(dateString).toLocaleTimeString("en-US", {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "--:--";
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: true,
     });
   };
 
@@ -125,12 +188,12 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8 text-white">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Clock className="text-primary" /> Attendance & Shift Tracking
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Clock className="text-cyan-400" /> Attendance & Shift Tracking
           </h1>
           <p className="text-gray-400 mt-1">
             Real-time staff presence monitoring
@@ -138,19 +201,21 @@ export default function AttendancePage() {
         </div>
 
         {/* Quick Actions Card */}
-        <div className="glass-panel p-6 mb-8">
+        <div className="glass-panel p-6 mb-8 rounded-xl border border-white/10 bg-surface">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-linear-to-br from-primary to-secondary flex items-center justify-center">
-                <span className="text-2xl font-bold text-black">SC</span>
+              <div className="h-16 w-16 rounded-full bg-linear-to-br from-cyan-400 to-purple-500 flex items-center justify-center text-black text-2xl font-bold">
+                {userProfile.name.charAt(0).toUpperCase()}
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  Dr. Sarah Connor
+                  {userProfile.name}
                 </h2>
-                <p className="text-gray-400">Emergency Department</p>
+                <p className="text-gray-400">
+                  {userProfile.department} Department
+                </p>
                 {currentUserAttendance?.check_in && (
-                  <p className="text-sm text-primary mt-1">
+                  <p className="text-cyan-400 text-sm mt-1">
                     Checked in at {formatTime(currentUserAttendance.check_in)}
                   </p>
                 )}
@@ -164,7 +229,7 @@ export default function AttendancePage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleCheckIn}
                   disabled={isActionLoading}
-                  className="neon-button flex items-center gap-2 px-8 py-4 text-lg"
+                  className="flex items-center gap-2 px-8 py-4 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors disabled:opacity-50"
                 >
                   {isActionLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -179,7 +244,7 @@ export default function AttendancePage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleCheckOut}
                   disabled={isActionLoading}
-                  className="bg-accent/10 border border-accent/50 text-accent hover:bg-accent hover:text-black transition-all duration-300 flex items-center gap-2 px-8 py-4 text-lg rounded-lg"
+                  className="flex items-center gap-2 px-8 py-4 bg-purple-500/10 border border-purple-500/50 text-purple-400 hover:bg-purple-500 hover:text-black transition-all duration-300 rounded-lg disabled:opacity-50"
                 >
                   {isActionLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -189,7 +254,7 @@ export default function AttendancePage() {
                   Check Out
                 </motion.button>
               ) : (
-                <div className="glass-panel px-6 py-4 flex items-center gap-2 text-emerald-400">
+                <div className="px-6 py-4 flex items-center gap-2 text-emerald-400 rounded-lg border border-emerald-500/20 bg-emerald-500/10">
                   <CheckCircle className="w-5 h-5" />
                   <span className="font-semibold">Day Complete</span>
                 </div>
@@ -200,9 +265,9 @@ export default function AttendancePage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="glass-panel p-6">
+          <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-lg bg-emerald-400/10">
+              <div className="p-3 rounded-lg bg-emerald-500/10">
                 <Users className="w-6 h-6 text-emerald-400" />
               </div>
               <span className="text-xs text-gray-500">Live</span>
@@ -213,10 +278,10 @@ export default function AttendancePage() {
             </p>
           </div>
 
-          <div className="glass-panel p-6">
+          <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <CheckCircle className="w-6 h-6 text-primary" />
+              <div className="p-3 rounded-lg bg-cyan-500/10">
+                <CheckCircle className="w-6 h-6 text-cyan-400" />
               </div>
               <span className="text-xs text-gray-500">Today</span>
             </div>
@@ -226,10 +291,10 @@ export default function AttendancePage() {
             </p>
           </div>
 
-          <div className="glass-panel p-6">
+          <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-lg bg-secondary/10">
-                <Calendar className="w-6 h-6 text-secondary" />
+              <div className="p-3 rounded-lg bg-purple-500/10">
+                <Calendar className="w-6 h-6 text-purple-400" />
               </div>
               <span className="text-xs text-gray-500">This Week</span>
             </div>
@@ -238,24 +303,24 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        {/* Today&apos;s Attendance Table */}
-        <div className="glass-panel overflow-hidden">
+        {/* Today's Attendance Table */}
+        <div className="glass-panel rounded-xl border border-white/10 bg-surface overflow-hidden">
           <div className="p-6 border-b border-white/10">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-cyan-400" />
               Today&apos;s Attendance
             </h2>
           </div>
 
           {isLoading ? (
             <div className="p-12 flex flex-col items-center justify-center text-gray-400">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+              <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mb-4" />
               <p>Loading attendance records...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-white/5 text-gray-400 text-sm uppercase tracking-wider">
+                <thead className="bg-background text-gray-400 text-sm uppercase tracking-wider">
                   <tr>
                     <th className="p-4">Staff Member</th>
                     <th className="p-4">Department</th>
@@ -268,7 +333,7 @@ export default function AttendancePage() {
                   {todayAttendance.length > 0 ? (
                     todayAttendance.map((record, index) => (
                       <motion.tr
-                        key={record.staff_id}
+                        key={`${record.staff_id}-${index}`}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
@@ -276,11 +341,12 @@ export default function AttendancePage() {
                       >
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-primary to-secondary flex items-center justify-center text-xs font-bold text-black">
+                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-cyan-400 to-purple-500 flex items-center justify-center text-xs font-bold text-black">
                               {record.staff_name
                                 .split(" ")
                                 .map((n) => n[0])
-                                .join("")}
+                                .join("")
+                                .substring(0, 2)}
                             </div>
                             <div>
                               <p className="font-medium text-white">
@@ -303,12 +369,12 @@ export default function AttendancePage() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
-                            {record.is_checked_in ? (
+                            {record.is_checked_in && (
                               <span className="relative flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                               </span>
-                            ) : null}
+                            )}
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-medium border ${
                                 record.status === "Present"
