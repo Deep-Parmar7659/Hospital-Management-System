@@ -27,7 +27,7 @@ export const authService = {
       if (response.data.access_token) {
         localStorage.setItem("nexus_token", response.data.access_token);
 
-        // Decode JWT to get ALL user info
+        // Decode JWT to get email and role
         const token = response.data.access_token;
         const base64Url = token.split(".")[1];
         const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -39,18 +39,39 @@ export const authService = {
         );
         const payload = JSON.parse(jsonPayload);
 
-        // Save user data with FULL NAME
+        // Fetch staff list to find the matching staff_id
+        let foundStaffId = 1; // Default fallback
+        try {
+          const staffResponse = await api.get("/staff/");
+          const staffList = staffResponse.data;
+          const matchedStaff = staffList.find(
+            (s: { email: string }) =>
+              s.email.toLowerCase() === email.toLowerCase(),
+          );
+
+          if (matchedStaff) {
+            foundStaffId = matchedStaff.id;
+            console.log(
+              "✅ Found staff_id:",
+              foundStaffId,
+              "for email:",
+              email,
+            );
+          }
+        } catch (err) {
+          console.warn("Could not fetch staff list:", err);
+        }
+
+        // Save complete user data INCLUDING staff_id
         const userData = {
           email: payload.sub || email,
           role: payload.role || "staff",
-          full_name:
-            payload.full_name ||
-            payload.sub?.split("@")[0] ||
-            email.split("@")[0],
+          full_name: payload.full_name || email.split("@")[0],
+          staff_id: foundStaffId, // ✅ THIS IS THE FIX
         };
-        localStorage.setItem("nexus_user", JSON.stringify(userData));
 
-        console.log("✅ User logged in:", userData);
+        localStorage.setItem("nexus_user", JSON.stringify(userData));
+        console.log("✅ Login successful. User data saved:", userData);
       }
       return response.data;
     } catch (error) {
