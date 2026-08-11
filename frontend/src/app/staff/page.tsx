@@ -30,7 +30,6 @@ export default function StaffPage() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Matches your backend StaffCreate schema exactly
   const [formData, setFormData] = useState<FormData>({
     full_name: "",
     email: "",
@@ -76,9 +75,7 @@ export default function StaffPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // Send exactly what the backend StaffCreate schema expects
       await api.post("/staff/", formData);
-
       setShowForm(false);
       setFormData({
         full_name: "",
@@ -88,8 +85,6 @@ export default function StaffPage() {
         shift: "Morning",
         status: "Active",
       });
-
-      // Refresh list
       const response = await api.get("/staff/");
       setStaffList(response.data);
     } catch (error) {
@@ -99,8 +94,8 @@ export default function StaffPage() {
           const errorMessage = Array.isArray(detail)
             ? detail
                 .map(
-                  (d: unknown) =>
-                    `${(d as { loc: string[]; msg: string }).loc.join(".")}: ${(d as { loc: string[]; msg: string }).msg}`,
+                  (d: { loc: (string | number)[]; msg: string }) =>
+                    `${d.loc.join(".")}: ${d.msg}`,
                 )
                 .join("\n")
             : typeof detail === "string"
@@ -118,6 +113,26 @@ export default function StaffPage() {
     }
   };
 
+  const handleDelete = async (staffId: number, staffName: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete ${staffName}? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await api.delete(`/staff/${staffId}`);
+      // Refresh the list after deletion
+      const response = await api.get("/staff/");
+      setStaffList(response.data);
+    } catch (error) {
+      console.error("Failed to delete staff:", error);
+      alert("Failed to delete staff member");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -128,7 +143,6 @@ export default function StaffPage() {
 
   return (
     <div className="p-4 md:p-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
@@ -145,7 +159,6 @@ export default function StaffPage() {
         </button>
       </div>
 
-      {/* Add Staff Form */}
       {showForm && (
         <div className="glass-panel p-6 rounded-xl border border-white/10 bg-surface mb-8 transition-all duration-300">
           <h2 className="text-xl font-bold text-white mb-4">
@@ -242,7 +255,6 @@ export default function StaffPage() {
                 <option value="Off Duty">Off Duty</option>
               </select>
             </div>
-
             <div className="md:col-span-2 flex gap-3 mt-2">
               <button
                 type="submit"
@@ -267,7 +279,6 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* Staff Table */}
       <div className="glass-panel rounded-xl border border-white/10 bg-surface overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-300">
@@ -310,7 +321,7 @@ export default function StaffPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 rounded text-xs border ${
-                          staff.status === "ACTIVE"
+                          staff.status === "Active"
                             ? "bg-green-500/10 text-green-400 border-green-500/20"
                             : "bg-red-500/10 text-red-400 border-red-500/20"
                         }`}
@@ -319,7 +330,11 @@ export default function StaffPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                      <button
+                        onClick={() => handleDelete(staff.id, staff.full_name)}
+                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Delete Staff"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </td>

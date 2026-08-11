@@ -37,3 +37,19 @@ async def create_staff(staff_data: StaffCreate, db: AsyncSession = Depends(get_d
     await db.refresh(new_staff)
     
     return new_staff
+
+# DELETE STAFF MEMBER
+@router.delete("/{staff_id}", status_code=200)
+async def delete_staff(staff_id: int, db: AsyncSession = Depends(get_db)):
+    # Check if staff exists
+    result = await db.execute(select(Staff).where(Staff.id == staff_id))
+    staff = result.scalar_one_or_none()
+    
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+    
+    # Delete the staff member
+    await db.delete(staff)
+    await db.commit()
+    
+    return {"message": "Staff member deleted successfully"}
