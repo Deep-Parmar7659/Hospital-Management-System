@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel # type: ignore
 from typing import Optional
 from datetime import date, datetime
 from ..models.leave import LeaveType, LeaveStatus
@@ -12,6 +12,7 @@ class LeaveCreate(BaseModel):
 
 class LeaveStatusUpdate(BaseModel):
     status: LeaveStatus
+    updated_by_role: str 
 
 class LeaveResponse(BaseModel):
     id: int

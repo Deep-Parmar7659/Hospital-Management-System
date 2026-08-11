@@ -1,140 +1,93 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Bell } from "lucide-react";
+import { useState } from "react";
 import api from "@/lib/api";
+import { Bell } from "lucide-react";
 
-interface Notification {
+type Notification = {
   id: number;
-  title: string;
   message: string;
   is_read: boolean;
   created_at: string;
-}
+};
 
-export default function NotificationCenter() {
-  const [isOpen, setIsOpen] = useState(false);
+export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [staffId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
 
-  const fetchNotifications = async () => {
     try {
-      const res = await api.get("/notifications/");
+      const storedUser = localStorage.getItem("nexus_user");
+      if (!storedUser) return null;
+
+      const user = JSON.parse(storedUser);
+      return user?.staff_id ?? null;
+    } catch {
+      return null;
+    }
+  });
+
+  const fetchNotifications = async (id: number) => {
+    try {
+      const res = await api.get(`/notifications/${id}`);
       setNotifications(res.data);
-      setUnreadCount(res.data.filter((n: Notification) => !n.is_read).length);
     } catch (error) {
       console.error("Failed to fetch notifications", error);
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
+  const handleToggleNotifications = async () => {
+    const nextOpen = !isOpen;
+    setIsOpen(nextOpen);
 
-    const loadNotifications = async () => {
-      try {
-        const res = await api.get("/notifications/");
-        if (isMounted) {
-          setNotifications(res.data);
-          setUnreadCount(
-            res.data.filter((n: Notification) => !n.is_read).length,
-          );
-        }
-      } catch (error) {
-        console.error("Failed to fetch notifications", error);
-      }
-    };
-
-    loadNotifications();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const markAsRead = async (id: number) => {
-    try {
-      await api.patch(`/notifications/${id}/read`);
-      fetchNotifications();
-    } catch (error) {
-      console.error("Failed to mark as read", error);
+    if (nextOpen && staffId) {
+      await fetchNotifications(staffId);
     }
   };
 
-  const timeAgo = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
-    if (diff < 1) return "Just now";
-    if (diff < 60) return `${diff}m ago`;
-    return `${Math.floor(diff / 60)}h ago`;
-  };
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  if (!staffId) return null; // Don't show for admins without a staff_id
 
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-3 glass-panel hover:bg-white/10 transition-colors"
+        onClick={handleToggleNotifications}
+        className="relative p-2 text-gray-300 hover:text-white transition-colors"
       >
-        <Bell className="w-5 h-5 text-gray-300" />
+        <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
-          <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-accent rounded-full animate-pulse border-2 border-background" />
+          <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+            {unreadCount}
+          </span>
         )}
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setIsOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute right-0 top-14 w-80 glass-panel z-50 overflow-hidden max-h-96 flex flex-col"
-            >
-              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                <h3 className="font-bold text-white">Notifications</h3>
-                <span className="text-xs text-primary">
-                  {unreadCount} Unread
-                </span>
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 glass-panel rounded-xl border border-white/10 bg-surface shadow-xl z-50 max-h-96 overflow-y-auto">
+          <div className="p-3 border-b border-white/10 font-semibold text-white">
+            Notifications
+          </div>
+          {notifications.length === 0 ? (
+            <div className="p-4 text-gray-400 text-sm text-center">
+              No notifications
+            </div>
+          ) : (
+            notifications.map((n) => (
+              <div
+                key={n.id}
+                className={`p-3 border-b border-white/5 text-sm ${n.is_read ? "text-gray-400" : "text-white bg-white/5"}`}
+              >
+                {n.message}
+                <div className="text-xs text-gray-500 mt-1">
+                  {new Date(n.created_at).toLocaleDateString()}
+                </div>
               </div>
-
-              <div className="overflow-y-auto flex-1 p-2 space-y-2">
-                {notifications.length > 0 ? (
-                  notifications.map((notif) => (
-                    <div
-                      key={notif.id}
-                      onClick={() => markAsRead(notif.id)}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                        notif.is_read
-                          ? "bg-transparent hover:bg-white/5"
-                          : "bg-primary/5 hover:bg-primary/10 border border-primary/10"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <h4 className="text-sm font-semibold text-white">
-                          {notif.title}
-                        </h4>
-                        <span className="text-[10px] text-gray-500">
-                          {timeAgo(notif.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400">{notif.message}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-gray-500 text-sm py-8">
-                    No notifications yet.
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
