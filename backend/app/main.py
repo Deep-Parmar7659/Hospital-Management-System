@@ -12,7 +12,7 @@ from .routers import shift
 from .routers import dashboard
 
 app = FastAPI(
-    title="Futuristic HMS API", 
+    title="Nexus HMS API", 
     version="1.0.0",
     description="Next-Gen Hospital Management System Backend"
 )
