@@ -9,6 +9,7 @@ from .routers import payroll
 from .routers import notification
 from .routers import reports
 from .routers import shift
+from .routers import dashboard
 
 app = FastAPI(
     title="Futuristic HMS API", 
@@ -38,6 +39,7 @@ app.include_router(payroll.router, prefix="/api/v1/payroll", tags=["Payroll Syst
 app.include_router(notification.router, prefix="/api/v1/notifications", tags=["Notifications"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports & Analytics"])
 app.include_router(shift.router, prefix="/api/v1/shifts", tags=["Shift Scheduling"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 
 @app.on_event("startup")
 async def startup():
