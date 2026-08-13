@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from typing import List
 from ..database import get_db
 from ..models.leave import LeaveRequest, LeaveStatus
 from ..models.staff import Staff
+from ..models.notification import Notification
 from ..schemas.leave import LeaveCreate, LeaveStatusUpdate, LeaveResponse
 
 router = APIRouter()
@@ -19,6 +20,25 @@ async def create_leave_request(leave: LeaveCreate, db: AsyncSession = Depends(ge
 
     new_leave = LeaveRequest(**leave.model_dump())
     db.add(new_leave)
+
+    managers_result = await db.execute(
+        select(Staff).where(
+            or_(
+                Staff.designation == "HR",
+                Staff.designation == "Admin",
+            )
+        )
+    )
+    managers = managers_result.scalars().all()
+
+    for manager in managers:
+        notification = Notification(
+            staff_id=manager.id,
+            message=f"New leave request from {staff.full_name} ({staff.department}) for {leave.leave_type} from {leave.start_date} to {leave.end_date}. Reason: {leave.reason}",
+            is_read=False
+        )
+        db.add(notification)
+
     await db.commit()
     await db.refresh(new_leave)
 
@@ -81,6 +101,14 @@ async def update_leave_status(
     staff_result = await db.execute(select(Staff).where(Staff.id == leave.staff_id))
     staff = staff_result.scalar_one()
 
+    notification = Notification(
+        staff_id=leave.staff_id,
+        message=f"Your {leave.leave_type} leave request has been {status_update.status.lower()} by {status_update.updated_by_role.upper()}.",
+        is_read=False
+    )
+    db.add(notification)
+    await db.commit()
+    
     return LeaveResponse(
         id=leave.id,
         staff_id=leave.staff_id,

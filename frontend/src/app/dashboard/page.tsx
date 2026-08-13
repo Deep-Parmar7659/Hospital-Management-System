@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import DashboardCharts from "@/components/DashboardCharts";
 import { BedDouble, Users, HeartPulse, FileClock, LogOut } from "lucide-react";
+import NotificationBell from "@/components/NotificationCenter";
 
 function getInitialUserProfile() {
   if (typeof window === "undefined") {
@@ -97,8 +98,9 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Clickable Profile */}
-        <div className="relative">
+        {/* Clickable Profile & Notification Bell */}
+        <div className="relative flex items-center gap-4">
+          <NotificationBell />
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2 rounded-full bg-white/10 p-1 pr-3 hover:bg-white/20 transition-colors"

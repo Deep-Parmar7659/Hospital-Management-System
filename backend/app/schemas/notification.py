@@ -1,13 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel  # type: ignore
 from datetime import datetime
-
-class NotificationCreate(BaseModel):
-    title: str
-    message: str
+from typing import Optional
 
 class NotificationResponse(BaseModel):
     id: int
-    title: str
+    staff_id: int
     message: str
     is_read: bool
     created_at: datetime
