@@ -21,10 +21,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "https://hospital-management-system-iota-beige.vercel.app",  # Your exact Vercel URL
+        "https://*.vercel.app",  # All Vercel preview URLs
     ],
-    # THIS IS THE MAGIC FIX: Allows ANY Vercel preview or production URL
-    allow_origin_regex=r"https://.*\.vercel\.app", 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
