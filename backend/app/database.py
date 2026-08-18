@@ -3,10 +3,12 @@ from sqlalchemy.orm import declarative_base
 from .config import settings
 
 # Create async engine with PostgreSQL
+# ✅ Added connect_args={"ssl": "require"} for Neon compatibility
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True,  # Set to False in production
-    future=True
+    echo=False,  # Set to False in production
+    future=True,
+    connect_args={"ssl": "require"}  # Magic fix for Neon + asyncpg
 )
 
 # Create session factory
