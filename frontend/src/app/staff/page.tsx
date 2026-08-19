@@ -18,6 +18,7 @@ interface StaffMember {
 interface FormData {
   full_name: string;
   email: string;
+  password: string;
   department: string;
   designation: string;
   shift: string;
@@ -33,6 +34,7 @@ export default function StaffPage() {
   const [formData, setFormData] = useState<FormData>({
     full_name: "",
     email: "",
+    password: "Staff@123",
     department: "General",
     designation: "Doctor",
     shift: "Morning",
@@ -80,6 +82,7 @@ export default function StaffPage() {
       setFormData({
         full_name: "",
         email: "",
+        password: "Staff@123",
         department: "General",
         designation: "Doctor",
         shift: "Morning",
@@ -193,6 +196,23 @@ export default function StaffPage() {
                 className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
                 placeholder="john@hospital.com"
               />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                Password
+              </label>
+              <input
+                required
+                name="password"
+                type="text" // Kept as text so Admin can see it to share with the staff member
+                value={formData.password}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 bg-background border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-400"
+                placeholder="e.g., Staff@123"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Share this password with the staff member
+              </p>
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">

@@ -1,14 +1,15 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr # type: ignore # type : ignore
 from typing import Optional
 from ..models.staff import ShiftType, StaffStatus
 
 class StaffCreate(BaseModel):
     full_name: str
     email: EmailStr
+    password: str
     department: str
     designation: str
-    shift: ShiftType = ShiftType.MORNING
-    status: StaffStatus = StaffStatus.ACTIVE
+    shift: str
+    status: str
 
 class StaffResponse(BaseModel):
     id: int
@@ -16,8 +17,8 @@ class StaffResponse(BaseModel):
     email: str
     department: str
     designation: str
-    shift: ShiftType
-    status: StaffStatus
+    shift: str
+    status: str
 
     class Config:
         from_attributes = True

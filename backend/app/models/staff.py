@@ -18,6 +18,7 @@ class Staff(Base):
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)  # Store hashed password
     department = Column(String, nullable=False) # e.g., Cardiology, Neurology
     designation = Column(String, nullable=False) # e.g., Senior Doctor, Nurse
     shift = Column(Enum(ShiftType), default=ShiftType.MORNING)

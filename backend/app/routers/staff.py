@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, select
 from typing import List
+from passlib.context import CryptContext # type: ignore
 from ..database import get_db
 from ..models.staff import Staff
 from ..schemas.staff import StaffCreate, StaffResponse
@@ -11,6 +12,7 @@ from ..models.payroll import Payroll
 from ..models.shift import ShiftSchedule
 
 router = APIRouter()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # GET ALL STAFF
 @router.get("/", response_model=List[StaffResponse])
@@ -26,14 +28,18 @@ async def create_staff(staff_data: StaffCreate, db: AsyncSession = Depends(get_d
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Create new staff with CORRECT fields matching your schema
+    # Hash the password securely
+    hashed_password = pwd_context.hash(staff_data.password)
+    
+    # Create new staff
     new_staff = Staff(
         full_name=staff_data.full_name,
         email=staff_data.email,
         department=staff_data.department,
         designation=staff_data.designation,
         shift=staff_data.shift,
-        status=staff_data.status
+        status=staff_data.status,
+        hashed_password=hashed_password
     )
     
     db.add(new_staff)
