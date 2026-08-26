@@ -4,9 +4,9 @@ from sqlalchemy import delete, select
 from typing import List
 from ..database import get_db
 from ..models.staff import Staff
-from ..models.user import User  # ✅ ADDED: Import User model
+from ..models.user import User
 from ..schemas.staff import StaffCreate, StaffResponse
-from ..core.security import get_password_hash  # ✅ ADDED: Use your existing hash function
+from ..core.security import get_password_hash
 from ..models.attendance import Attendance
 from ..models.leave import LeaveRequest
 from ..models.payroll import Payroll
@@ -48,7 +48,7 @@ async def create_staff(staff_data: StaffCreate, db: AsyncSession = Depends(get_d
     )
     db.add(new_staff)
     
-    # 5. ✅ THE MAGIC FIX: Automatically create the User login record
+    # 5. Automatically create the User login record
     new_user = User(
         full_name=staff_data.full_name,
         email=staff_data.email,
