@@ -14,20 +14,27 @@ type Notification = {
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [staffId] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [staffId, setStaffId] = useState<number | null>(null);
 
-    try {
-      const storedUser = localStorage.getItem("nexus_user");
-      if (!storedUser) return null;
+  // 1. Get staffId on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedUser = localStorage.getItem("nexus_user");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          const nextStaffId = user?.staff_id ?? null;
+          const timeoutId = window.setTimeout(() => {
+            setStaffId(nextStaffId);
+          }, 0);
 
-      const user = JSON.parse(storedUser);
-      return user?.staff_id ?? null;
-    } catch (error) {
-      console.error("Error parsing user:", error);
-      return null;
+          return () => window.clearTimeout(timeoutId);
+        }
+      } catch (error) {
+        console.error("Error parsing user:", error);
+      }
     }
-  });
+  }, []);
 
   // 2. Fetch notifications and set up real-time polling
   useEffect(() => {
@@ -35,7 +42,6 @@ export default function NotificationBell() {
 
     const fetchNotifications = async () => {
       try {
-        // Note: Matches the backend endpoint we created: /notifications/staff/{staff_id}
         const res = await api.get(`/notifications/staff/${staffId}`);
         setNotifications(res.data);
       } catch (error) {
@@ -43,11 +49,8 @@ export default function NotificationBell() {
       }
     };
 
-    // Fetch immediately
     fetchNotifications();
-
-    // Poll every 30 seconds for "real-time" feel
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
 
     return () => clearInterval(interval);
   }, [staffId]);
@@ -56,7 +59,6 @@ export default function NotificationBell() {
   const markAsRead = async (notificationId: number) => {
     try {
       await api.patch(`/notifications/${notificationId}/read`);
-      // Optimistically update UI
       setNotifications((prev) =>
         prev.map((n) =>
           n.id === notificationId ? { ...n, is_read: true } : n,
@@ -80,25 +82,28 @@ export default function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  if (!staffId) return null; // Don't show for users without a staff_id
-
   return (
     <div className="relative">
-      {/* Bell Icon */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-300 hover:text-white transition-colors"
+        onClick={() => staffId && setIsOpen(!isOpen)}
+        className={`relative p-2 transition-colors ${
+          staffId
+            ? "text-gray-300 hover:text-white cursor-pointer"
+            : "text-gray-600 cursor-not-allowed"
+        }`}
+        title={
+          !staffId ? "No staff ID linked to this account" : "Notifications"
+        }
       >
         <Bell className="w-6 h-6" />
-        {unreadCount > 0 && (
+        {unreadCount > 0 && staffId && (
           <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Dropdown Panel */}
-      {isOpen && (
+      {isOpen && staffId && (
         <>
           {/* Invisible backdrop to close when clicking outside */}
           <div

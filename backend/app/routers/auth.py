@@ -51,9 +51,26 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Find the corresponding staff_id for this user
     staff_result = await db.execute(select(Staff).where(Staff.email == user.email))
     staff_record = staff_result.scalar_one_or_none()
     staff_id = staff_record.id if staff_record else None
+    
+    # If no staff record exists for Admin/HR, create one automatically
+    if not staff_record and user.role in ["admin", "hr"]:
+        new_staff = Staff(
+            full_name=user.full_name,
+            email=user.email,
+            department="Administration" if user.role == "admin" else "Human Resources",
+            designation=user.role.capitalize(),
+            shift="Morning",
+            status="Active",
+            hashed_password=user.hashed_password
+        )
+        db.add(new_staff)
+        await db.commit()
+        await db.refresh(new_staff)
+        staff_id = new_staff.id
     
     # Generate JWT Token with STAFF ID included
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -62,7 +79,7 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             "sub": user.email, 
             "role": user.role,
             "full_name": user.full_name,
-            "staff_id": staff_id  # ✅ ADDED: Now the frontend knows the staff_id!
+            "staff_id": staff_id  # Now Admin/HR will have a staff_id too!
         },
         expires_delta=access_token_expires
     )
