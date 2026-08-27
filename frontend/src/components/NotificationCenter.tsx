@@ -37,20 +37,37 @@ export default function NotificationBell() {
   }, []);
 
   // 2. Fetch notifications and set up real-time polling
+  // Inside the useEffect:
   useEffect(() => {
-    if (!staffId) return;
+    if (!staffId) {
+      console.log("⚠️ No staffId available");
+      return;
+    }
+
+    console.log("🔔 Fetching notifications for staff_id:", staffId);
 
     const fetchNotifications = async () => {
       try {
-        const res = await api.get(`/notifications/staff/${staffId}`);
+        const endpoint = `/notifications/staff/${staffId}`;
+        console.log("📡 Calling API:", endpoint);
+
+        const res = await api.get(endpoint);
+        console.log("✅ Received notifications:", res.data);
+        console.log(
+          "Unread count:",
+          res.data.filter((n: Notification) => !n.is_read).length,
+        );
+
         setNotifications(res.data);
       } catch (error) {
-        console.error("Failed to fetch notifications", error);
+        console.error("❌ Failed to fetch notifications:", error);
+        const response = (error as { response?: { data?: unknown } }).response;
+        console.error("Error details:", response?.data);
       }
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+    const interval = setInterval(fetchNotifications, 10000); // Poll every 10 seconds
 
     return () => clearInterval(interval);
   }, [staffId]);

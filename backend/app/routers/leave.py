@@ -23,26 +23,34 @@ async def create_leave_request(leave: LeaveCreate, db: AsyncSession = Depends(ge
     # 2. Create the leave request
     new_leave = LeaveRequest(**leave.model_dump())
     db.add(new_leave)
+    await db.flush()  # ✅ Get the leave ID before commit
     
     # 3. TRIGGER: Notify all Admins and HR about the new request
+    # Get all users with admin or hr role
     admins_hr_result = await db.execute(
         select(User).where(User.role.in_(["admin", "hr"]))
     )
     admins_hr = admins_hr_result.scalars().all()
     
+    print(f" Found {len(admins_hr)} admin/hr users to notify")
+    
     for admin_hr in admins_hr:
-        # Find their staff_id to link the notification (if they are in the staff table)
-        staff_user = await db.execute(select(Staff).where(Staff.email == admin_hr.email))
-        staff_record = staff_user.scalar_one_or_none()
-        target_staff_id = staff_record.id if staff_record else None
+        # Find their staff record by email
+        staff_user_result = await db.execute(
+            select(Staff).where(Staff.email == admin_hr.email)
+        )
+        staff_record = staff_user_result.scalar_one_or_none()
         
-        if target_staff_id:
+        if staff_record:
+            print(f"✅ Creating notification for {admin_hr.email} (staff_id: {staff_record.id})")
             notification = Notification(
-                staff_id=target_staff_id,
+                staff_id=staff_record.id,
                 message=f"New {leave.leave_type} leave request from {staff.full_name} ({staff.department}).",
                 is_read=False
             )
             db.add(notification)
+        else:
+            print(f"⚠️ No staff record found for {admin_hr.email}")
     
     await db.commit()
     await db.refresh(new_leave)
