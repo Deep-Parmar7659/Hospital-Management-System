@@ -89,49 +89,49 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       name: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
-      roles: ["admin", "commander", "hr", "staff"],
+      roles: ["admin", "hr", "doctor", "nurse", "technician", "receptionist"],
     },
     {
       name: "Staff Management",
       href: "/staff",
       icon: Users,
-      roles: ["admin", "commander", "hr"],
+      roles: ["admin", "hr"], // Restricted to Admin/HR only
     },
     {
       name: "Shift Scheduling",
       href: "/shifts",
       icon: Calendar,
-      roles: ["admin", "commander", "hr", "staff"],
+      roles: ["admin", "hr", "doctor", "nurse", "technician", "receptionist"],
     },
     {
       name: "Attendance",
       href: "/attendance",
       icon: Clock,
-      roles: ["admin", "commander", "hr", "staff"],
+      roles: ["admin", "hr", "doctor", "nurse", "technician", "receptionist"],
     },
     {
       name: "Leave Requests",
       href: "/leaves",
       icon: FileText,
-      roles: ["admin", "commander", "hr", "staff"],
+      roles: ["admin", "hr", "doctor", "nurse", "technician", "receptionist"],
     },
     {
       name: "Payroll",
       href: "/payroll",
       icon: DollarSign,
-      roles: ["admin", "commander", "hr", "staff"],
+      roles: ["admin", "hr"], // Restricted to Admin/HR only
     },
     {
       name: "Reports",
       href: "/reports",
       icon: BarChart3,
-      roles: ["admin", "commander", "hr"],
+      roles: ["admin", "hr"], // Restricted to Admin/HR only
     },
     {
       name: "System Settings",
       href: "/settings",
       icon: Settings,
-      roles: ["admin", "commander"],
+      roles: ["admin"], // Restricted to Admin ONLY
     },
   ];
 
