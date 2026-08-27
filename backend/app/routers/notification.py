@@ -8,7 +8,7 @@ from ..schemas.notification import NotificationResponse
 
 router = APIRouter()
 
-# GET NOTIFICATIONS FOR CURRENT USER (by staff_id)
+# GET NOTIFICATIONS FOR STAFF MEMBERS (by staff_id)
 @router.get("/staff/{staff_id}", response_model=List[NotificationResponse])
 async def get_notifications(staff_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -16,6 +16,20 @@ async def get_notifications(staff_id: int, db: AsyncSession = Depends(get_db)):
         .where(Notification.staff_id == staff_id)
         .order_by(Notification.created_at.desc())
         .limit(20)
+    )
+    return result.scalars().all()
+
+# GET NOTIFICATIONS FOR ADMIN/HR (all notifications)
+@router.get("/admin", response_model=List[NotificationResponse])
+async def get_admin_notifications(db: AsyncSession = Depends(get_db)):
+    """
+    Fetch all notifications for Admin/HR users.
+    This shows ALL leave request notifications across the system.
+    """
+    result = await db.execute(
+        select(Notification)
+        .order_by(Notification.created_at.desc())
+        .limit(50)  # Admin sees more notifications
     )
     return result.scalars().all()
 
@@ -47,12 +61,23 @@ async def mark_all_as_read(staff_id: int, db: AsyncSession = Depends(get_db)):
     
     return {"message": "All notifications marked as read"}
 
-# GET UNREAD COUNT
+# GET UNREAD COUNT FOR STAFF
 @router.get("/staff/{staff_id}/unread-count")
 async def get_unread_count(staff_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Notification)
         .where(Notification.staff_id == staff_id)
+        .where(Notification.is_read == False)
+    )
+    count = len(result.scalars().all())
+    
+    return {"unread_count": count}
+
+# GET UNREAD COUNT FOR ADMIN
+@router.get("/admin/unread-count")
+async def get_admin_unread_count(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Notification)
         .where(Notification.is_read == False)
     )
     count = len(result.scalars().all())
