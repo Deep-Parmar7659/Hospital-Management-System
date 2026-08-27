@@ -51,14 +51,13 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Find the corresponding staff_id for this user
     staff_result = await db.execute(select(Staff).where(Staff.email == user.email))
     staff_record = staff_result.scalar_one_or_none()
-    staff_id = staff_record.id if staff_record else None
     
-    # If no staff record exists for Admin/HR, create one automatically
-    if not staff_record and user.role in ["admin", "hr"]:
-        new_staff = Staff(
+    # If no staff record exists, create one automatically
+    if not staff_record:
+        print(f"⚠️ No staff record found for {user.email}, creating one...")
+        staff_record = Staff(
             full_name=user.full_name,
             email=user.email,
             department="Administration" if user.role == "admin" else "Human Resources",
@@ -67,10 +66,12 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             status="Active",
             hashed_password=user.hashed_password
         )
-        db.add(new_staff)
+        db.add(staff_record)
         await db.commit()
-        await db.refresh(new_staff)
-        staff_id = new_staff.id
+        await db.refresh(staff_record)
+        print(f"✅ Created staff record with ID: {staff_record.id}")
+    
+    staff_id = staff_record.id
     
     # Generate JWT Token with STAFF ID included
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -79,9 +80,11 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             "sub": user.email, 
             "role": user.role,
             "full_name": user.full_name,
-            "staff_id": staff_id  # Now Admin/HR will have a staff_id too!
+            "staff_id": staff_id
         },
         expires_delta=access_token_expires
     )
+    
+    print(f"🔑 Login successful for {user.email} with staff_id: {staff_id}")
     
     return {"access_token": access_token, "token_type": "bearer"}
