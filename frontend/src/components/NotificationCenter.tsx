@@ -14,36 +14,64 @@ type Notification = {
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [staffId] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [userRole, setUserRole] = useState<string>("");
+  const [staffId, setStaffId] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-    try {
-      const storedUser = localStorage.getItem("nexus_user");
-      if (!storedUser) return null;
-
-      const user = JSON.parse(storedUser);
-      console.log("🔔 NotificationBell - User:", user);
-      console.log("🔔 NotificationBell - staff_id:", user.staff_id);
-      return user?.staff_id ?? null;
-    } catch (error) {
-      console.error("Error parsing user:", error);
-      return null;
-    }
-  });
-
-  // Fetch notifications when staffId is available
+  // Load user data from localStorage
   useEffect(() => {
-    if (!staffId) {
-      console.log("⚠️ No staffId available for notifications");
-      return;
-    }
+    const mountTimer = window.setTimeout(() => {
+      setMounted(true);
 
-    console.log(" Fetching notifications for staff_id:", staffId);
+      let role = "";
+      let id: number | null = null;
+
+      try {
+        const storedUser = localStorage.getItem("nexus_user");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          role = user.role || "staff";
+          id = user.staff_id ?? null;
+          console.log(
+            "🔔 NotificationBell - Role:",
+            user.role,
+            "Staff ID:",
+            user.staff_id,
+          );
+        }
+      } catch (error) {
+        console.error("Error parsing user:", error);
+      }
+
+      setUserRole(role);
+      setStaffId(id);
+    }, 0);
+
+    return () => window.clearTimeout(mountTimer);
+  }, []);
+
+  // Fetch notifications based on role
+  useEffect(() => {
+    if (!mounted) return;
 
     const fetchNotifications = async () => {
       try {
-        const res = await api.get(`/notifications/staff/${staffId}`);
-        console.log("✅ Received notifications:", res.data);
+        let endpoint = "";
+
+        // ✅ Different endpoints for Admin vs Staff
+        if (userRole === "admin" || userRole === "hr") {
+          endpoint = "/notifications/admin";
+          console.log("📡 Fetching admin notifications");
+        } else if (staffId) {
+          endpoint = `/notifications/staff/${staffId}`;
+          console.log("📡 Fetching staff notifications for ID:", staffId);
+        } else {
+          console.log("️ No staffId or admin role - skipping notifications");
+          return;
+        }
+
+        const res = await api.get(endpoint);
+        console.log("✅ Received notifications:", res.data.length);
         const unread = res.data.filter((n: Notification) => !n.is_read);
         console.log("📬 Unread count:", unread.length);
         setNotifications(res.data);
@@ -56,7 +84,7 @@ export default function NotificationBell() {
     const interval = setInterval(fetchNotifications, 10000); // Poll every 10s
 
     return () => clearInterval(interval);
-  }, [staffId]);
+  }, [userRole, staffId, mounted]);
 
   const markAsRead = async (notificationId: number) => {
     try {
@@ -72,10 +100,14 @@ export default function NotificationBell() {
   };
 
   const markAllAsRead = async () => {
-    if (!staffId) return;
     try {
-      await api.patch(`/notifications/staff/${staffId}/read-all`);
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      if (userRole === "admin" || userRole === "hr") {
+        // For admin, mark all as read in the frontend only
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      } else if (staffId) {
+        await api.patch(`/notifications/staff/${staffId}/read-all`);
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      }
     } catch (error) {
       console.error("Failed to mark all as read", error);
     }
@@ -83,26 +115,35 @@ export default function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
+  if (!mounted) {
+    return (
+      <button className="relative p-2 text-gray-400">
+        <Bell className="w-6 h-6" />
+      </button>
+    );
+  }
+
+  // Don't show bell if no role/staffId
+  if (!userRole || (!staffId && userRole !== "admin" && userRole !== "hr")) {
+    return null;
+  }
+
   return (
     <div className="relative">
       <button
-        onClick={() => staffId && setIsOpen(!isOpen)}
-        className={`relative p-2 transition-colors ${
-          staffId
-            ? "text-gray-300 hover:text-white cursor-pointer"
-            : "text-gray-600 cursor-not-allowed"
-        }`}
-        title={!staffId ? "No staff ID linked" : "Notifications"}
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 text-gray-300 hover:text-white transition-colors cursor-pointer"
+        title="Notifications"
       >
         <Bell className="w-6 h-6" />
-        {unreadCount > 0 && staffId && (
+        {unreadCount > 0 && (
           <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
-      {isOpen && staffId && (
+      {isOpen && (
         <>
           <div
             className="fixed inset-0 z-40"
