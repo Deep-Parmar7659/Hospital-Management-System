@@ -11,6 +11,7 @@ type Notification = {
   created_at: string;
 };
 
+
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
