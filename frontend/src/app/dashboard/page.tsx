@@ -99,7 +99,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Clickable Profile & Notification Bell */}
-        <div className="relative flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <NotificationBell />
           <button
             onClick={() => setShowDropdown(!showDropdown)}
