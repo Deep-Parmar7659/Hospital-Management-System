@@ -102,15 +102,18 @@ export default function LeavesPage() {
   const handleRequestLeave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent admins from requesting leaves
-    if (!currentStaffId || userRole === "admin") {
-      alert("Only staff members can request leaves");
+    // Prevent admins/HR from requesting leaves
+    if (!currentStaffId || userRole === "admin" || userRole === "hr") {
+      alert("Only regular staff members can request leaves");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await api.post("/leaves/", formData);
+      await api.post("/leaves/", {
+        ...formData,
+        staff_id: currentStaffId, // ✅ Ensure we send the real staff_id from the token
+      });
       setShowModal(false);
       fetchLeaves();
       setFormData({
@@ -165,13 +168,13 @@ export default function LeavesPage() {
             </p>
           </div>
 
-          {/* Only show "Request Leave" button for staff members (not admins) */}
-          {userRole === "staff" && currentStaffId && (
+          {userRole !== "admin" && userRole !== "hr" && currentStaffId && (
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors"
             >
-              <Plus className="w-4 h-4" /> Request Leave
+              <Plus className="h-5 w-5" />
+              Request Leave
             </button>
           )}
         </div>

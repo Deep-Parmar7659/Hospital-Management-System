@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..database import get_db
 from ..models.user import User
+from ..models.staff import Staff
 from ..schemas.user import UserCreate, UserLogin, Token, UserResponse
 from ..core.security import get_password_hash, verify_password, create_access_token
 from ..config import settings
@@ -50,13 +51,18 @@ async def login_user(user_credentials: UserLogin, db: AsyncSession = Depends(get
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Generate JWT Token with FULL NAME included
+    staff_result = await db.execute(select(Staff).where(Staff.email == user.email))
+    staff_record = staff_result.scalar_one_or_none()
+    staff_id = staff_record.id if staff_record else None
+    
+    # Generate JWT Token with STAFF ID included
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={
             "sub": user.email, 
             "role": user.role,
-            "full_name": user.full_name  # ADD THIS
+            "full_name": user.full_name,
+            "staff_id": staff_id  # ✅ ADDED: Now the frontend knows the staff_id!
         },
         expires_delta=access_token_expires
     )
