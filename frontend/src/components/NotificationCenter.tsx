@@ -14,65 +14,50 @@ type Notification = {
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [staffId, setStaffId] = useState<number | null>(null);
+  const [staffId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
 
-  // 1. Get staffId on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const storedUser = localStorage.getItem("nexus_user");
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          const nextStaffId = user?.staff_id ?? null;
-          const timeoutId = window.setTimeout(() => {
-            setStaffId(nextStaffId);
-          }, 0);
+    try {
+      const storedUser = localStorage.getItem("nexus_user");
+      if (!storedUser) return null;
 
-          return () => window.clearTimeout(timeoutId);
-        }
-      } catch (error) {
-        console.error("Error parsing user:", error);
-      }
+      const user = JSON.parse(storedUser);
+      console.log("🔔 NotificationBell - User:", user);
+      console.log("🔔 NotificationBell - staff_id:", user.staff_id);
+      return user?.staff_id ?? null;
+    } catch (error) {
+      console.error("Error parsing user:", error);
+      return null;
     }
-  }, []);
+  });
 
-  // 2. Fetch notifications and set up real-time polling
-  // Inside the useEffect:
+  // Fetch notifications when staffId is available
   useEffect(() => {
     if (!staffId) {
-      console.log("⚠️ No staffId available");
+      console.log("⚠️ No staffId available for notifications");
       return;
     }
 
-    console.log("🔔 Fetching notifications for staff_id:", staffId);
+    console.log(" Fetching notifications for staff_id:", staffId);
 
     const fetchNotifications = async () => {
       try {
-        const endpoint = `/notifications/staff/${staffId}`;
-        console.log("📡 Calling API:", endpoint);
-
-        const res = await api.get(endpoint);
+        const res = await api.get(`/notifications/staff/${staffId}`);
         console.log("✅ Received notifications:", res.data);
-        console.log(
-          "Unread count:",
-          res.data.filter((n: Notification) => !n.is_read).length,
-        );
-
+        const unread = res.data.filter((n: Notification) => !n.is_read);
+        console.log("📬 Unread count:", unread.length);
         setNotifications(res.data);
       } catch (error) {
         console.error("❌ Failed to fetch notifications:", error);
-        const response = (error as { response?: { data?: unknown } }).response;
-        console.error("Error details:", response?.data);
       }
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000); // Poll every 10 seconds
+    const interval = setInterval(fetchNotifications, 10000); // Poll every 10s
 
     return () => clearInterval(interval);
   }, [staffId]);
 
-  // 3. Mark single notification as read
   const markAsRead = async (notificationId: number) => {
     try {
       await api.patch(`/notifications/${notificationId}/read`);
@@ -86,7 +71,6 @@ export default function NotificationBell() {
     }
   };
 
-  // 4. Mark ALL notifications as read
   const markAllAsRead = async () => {
     if (!staffId) return;
     try {
@@ -108,9 +92,7 @@ export default function NotificationBell() {
             ? "text-gray-300 hover:text-white cursor-pointer"
             : "text-gray-600 cursor-not-allowed"
         }`}
-        title={
-          !staffId ? "No staff ID linked to this account" : "Notifications"
-        }
+        title={!staffId ? "No staff ID linked" : "Notifications"}
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && staffId && (
@@ -122,14 +104,11 @@ export default function NotificationBell() {
 
       {isOpen && staffId && (
         <>
-          {/* Invisible backdrop to close when clicking outside */}
           <div
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-
           <div className="absolute right-0 mt-2 w-80 glass-panel rounded-xl border border-white/10 bg-surface shadow-xl z-50 max-h-96 overflow-hidden flex flex-col">
-            {/* Header */}
             <div className="p-3 border-b border-white/10 flex items-center justify-between">
               <span className="font-semibold text-white text-sm">
                 Notifications
@@ -150,7 +129,6 @@ export default function NotificationBell() {
               </button>
             </div>
 
-            {/* Notifications List */}
             <div className="overflow-y-auto flex-1">
               {notifications.length === 0 ? (
                 <div className="p-6 text-gray-400 text-sm text-center">
