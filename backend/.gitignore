@@ -1,6 +1,25 @@
-   .env
-   .env.local
-   venv/
-   *.db
-   __pycache__/
-   *.pyc
+# Environment variables
+.env
+.env.local
+
+# Virtual environment
+venv/
+
+# Database files
+*.db
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
